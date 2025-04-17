@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "663064292672",
+    "project_id": "lajuuu-learning-firebase",
+    "storage_bucket": "lajuuu-learning-firebase.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:663064292672:android:5f1fb004e82a5a16dedea5",
+        "android_client_info": {
+          "package_name": "com.example.aplikasi_lajuuu_learning"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDbK48zie7ONaR0voYmkA_V9Y4oRwsnle8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
