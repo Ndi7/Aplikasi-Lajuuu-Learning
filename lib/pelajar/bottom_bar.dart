@@ -3,6 +3,8 @@ import 'halaman_pesanan.dart';
 import 'halaman_chat.dart'; // Pastikan file ini sudah diimpor
 
 class BottomBar extends StatelessWidget {
+  const BottomBar({super.key});
+
   @override
   Widget build(BuildContext context) {
     return BottomNavigationBar(

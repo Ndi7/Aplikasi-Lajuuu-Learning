@@ -6,7 +6,7 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
 }
 
 class ChatListPage extends StatelessWidget {
-  const ChatListPage({Key? key}) : super(key: key);
+  const ChatListPage({super.key});
 
   final List<Map<String, dynamic>> chats = const [
     {
@@ -116,11 +116,11 @@ class ChatListPage extends StatelessWidget {
                           chat['foto'] != ''
                               ? NetworkImage(chat['foto'])
                               : null,
+                      backgroundColor: Colors.grey,
                       child:
                           chat['foto'] == ''
                               ? const Icon(Icons.person, color: Colors.white)
                               : null,
-                      backgroundColor: Colors.grey,
                     ),
                     title: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
