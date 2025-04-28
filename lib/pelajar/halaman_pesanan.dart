@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'headersmall_bar.dart'; // Import HeaderSmallBar
 
 class HalamanPesanan extends StatefulWidget {
-  const HalamanPesanan({Key? key}) : super(key: key);
+  const HalamanPesanan({super.key});
 
   @override
-  _HalamanPesananState createState() => _HalamanPesananState();
+  HalamanPesananState createState() => HalamanPesananState();
 }
 
-class _HalamanPesananState extends State<HalamanPesanan>
+class HalamanPesananState extends State<HalamanPesanan>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
@@ -32,9 +32,9 @@ class _HalamanPesananState extends State<HalamanPesanan>
         children: [
           // Menggunakan HeaderSmallBar
           HeaderSmallBar(
-            title: 'Pesanan', // Judul header
+            title: 'Pesanan',
             onBack: () {
-              Navigator.pop(context); // Navigasi kembali
+              Navigator.pop(context);
             },
           ),
           Container(

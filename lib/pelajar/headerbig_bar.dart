@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class HeaderBar extends StatelessWidget {
+  const HeaderBar({super.key});
+
   @override
   Widget build(BuildContext context) {
     return ClipPath(

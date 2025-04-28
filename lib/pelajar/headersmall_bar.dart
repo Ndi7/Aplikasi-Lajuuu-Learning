@@ -4,8 +4,7 @@ class HeaderSmallBar extends StatelessWidget {
   final String title; // Teks judul yang akan tampil di header
   final VoidCallback? onBack;
 
-  const HeaderSmallBar({Key? key, required this.title, this.onBack})
-    : super(key: key);
+  const HeaderSmallBar({super.key, required this.title, this.onBack});
 
   @override
   Widget build(BuildContext context) {

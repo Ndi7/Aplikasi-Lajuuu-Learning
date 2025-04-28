@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'filter_kategori.dart';
+import 'bottom_bar.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +22,7 @@ class MyApp extends StatelessWidget {
 }
 
 class PengajarListPage extends StatelessWidget {
-  PengajarListPage({Key? key}) : super(key: key);
+  PengajarListPage({super.key});
 
   final List<Map<String, String>> pengajar = [
     {
@@ -82,7 +84,49 @@ class PengajarListPage extends StatelessWidget {
                 IconButton(
                   icon: const Icon(Icons.filter_alt_outlined),
                   onPressed: () {
-                    // Handle filter action
+                    showGeneralDialog(
+                      context: context,
+                      barrierDismissible: true,
+                      barrierLabel: "Filter",
+                      transitionDuration: const Duration(milliseconds: 300),
+                      pageBuilder: (context, animation, secondaryAnimation) {
+                        return Align(
+                          alignment:
+                              Alignment.centerRight, // Di sisi kiri layar
+                          child: Material(
+                            color: Colors.white,
+                            elevation: 8,
+                            borderRadius: const BorderRadius.only(
+                              topRight: Radius.circular(16),
+                              bottomRight: Radius.circular(16),
+                            ),
+                            child: SizedBox(
+                              width:
+                                  MediaQuery.of(context).size.width *
+                                  0.5, // Setengah layar
+                              height: MediaQuery.of(context).size.height,
+                              child:
+                                  FilterKategori(), // Ganti dengan isi filternya
+                            ),
+                          ),
+                        );
+                      },
+                      transitionBuilder: (
+                        context,
+                        animation,
+                        secondaryAnimation,
+                        child,
+                      ) {
+                        final offsetAnimation = Tween<Offset>(
+                          begin: const Offset(1, 0), // Dari kiri ke kanan
+                          end: Offset.zero,
+                        ).animate(animation);
+                        return SlideTransition(
+                          position: offsetAnimation,
+                          child: child,
+                        );
+                      },
+                    );
                   },
                 ),
               ],
@@ -155,6 +199,10 @@ class PengajarListPage extends StatelessWidget {
             ),
           ],
         ),
+      ),
+      bottomNavigationBar: BottomBar(
+        showBottomBar: true,
+        disableHighlight: true,
       ),
     );
   }

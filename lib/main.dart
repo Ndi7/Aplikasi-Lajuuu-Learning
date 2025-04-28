@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'headerbig_bar.dart';
-import 'bottom_bar.dart';
-import 'halaman_utama.dart';
+import 'pelajar/halaman_utama.dart'; // Pastikan file ini sudah ada
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,19 +10,10 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(debugShowCheckedModeBanner: false, home: HomeScreen());
-  }
-}
-
-class HomeScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Stack(children: [HeaderBar(), Content()]),
-      bottomNavigationBar: BottomBar(),
-    );
   }
 }
