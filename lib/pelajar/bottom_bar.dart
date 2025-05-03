@@ -7,6 +7,7 @@ import 'halaman_chat.dart';
 class BottomBar extends StatelessWidget {
   final bool showBottomBar;
   final bool disableHighlight;
+
   const BottomBar({
     Key? key,
     required this.showBottomBar,
@@ -15,7 +16,7 @@ class BottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!showBottomBar) return SizedBox.shrink();
+    if (!showBottomBar) return const SizedBox.shrink();
 
     final Color selectedColor =
         disableHighlight ? Colors.grey : const Color(0xFF7C4DFF);
@@ -26,21 +27,27 @@ class BottomBar extends StatelessWidget {
       selectedItemColor: selectedColor,
       unselectedItemColor: Colors.grey,
       onTap: (index) {
-        if (index == 0) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => HomeScreen()),
-          );
-        } else if (index == 1) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => HalamanPesanan()),
-          );
-        } else if (index == 2) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => ChatListPage()),
-          );
+        switch (index) {
+          case 0:
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+            );
+            break;
+          case 1:
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HalamanPesanan()),
+            );
+            break;
+          case 2:
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ChatListPage()),
+            );
+            break;
+          default:
+            break;
         }
       },
       items: const [
