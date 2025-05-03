@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'pelajar/halaman_utama.dart'; // Pastikan file ini sudah ada
+import 'Login/login.dart';
+import 'Login/started.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,6 +16,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(debugShowCheckedModeBanner: false, home: HomeScreen());
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: StartedScreen(),
+      routes: {
+        '/login': (context) => LoginPage(),
+        '/home': (context) => HomeScreen(),
+      },
+    );
   }
 }

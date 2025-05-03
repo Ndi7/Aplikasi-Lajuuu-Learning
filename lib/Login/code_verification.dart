@@ -49,18 +49,12 @@ class _VerifikasiKodePageState extends State<VerifikasiKodePage> {
                 const SizedBox(height: 16),
                 const Text(
                   'Masukkan kode verifikasi',
-                  style: TextStyle(
-                    fontSize: 20.0,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 12),
                 const Text(
                   'Masukan 6-digit kode yang dikirim melalui email anda',
-                  style: TextStyle(
-                    fontSize: 16.0,
-                    color: Colors.black54,
-                  ),
+                  style: TextStyle(fontSize: 16.0, color: Colors.black54),
                 ),
                 const SizedBox(height: 24),
                 TextField(
@@ -74,7 +68,10 @@ class _VerifikasiKodePageState extends State<VerifikasiKodePage> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8.0),
-                      borderSide: const BorderSide(color: Colors.green, width: 2.0),
+                      borderSide: const BorderSide(
+                        color: Colors.green,
+                        width: 2.0,
+                      ),
                     ),
                   ),
                 ),
@@ -83,7 +80,9 @@ class _VerifikasiKodePageState extends State<VerifikasiKodePage> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      debugPrint('Kode yang dimasukkan: ${_kodeController.text}');
+                      debugPrint(
+                        'Kode yang dimasukkan: ${_kodeController.text}',
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF7C4DFF),
@@ -91,10 +90,7 @@ class _VerifikasiKodePageState extends State<VerifikasiKodePage> {
                     ),
                     child: const Text(
                       'Kirim',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: Colors.white, fontSize: 16),
                     ),
                   ),
                 ),

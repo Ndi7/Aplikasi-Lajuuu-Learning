@@ -14,19 +14,19 @@ class _StartedScreenState extends State<StartedScreen> {
       'image': 'assets/images/get_started_.png',
       'title': 'Find a Great Tutor or Be One!',
       'description':
-          'Temukan tutor terbaik untuk kebutuhan belajarmu, atau jadi tutor dan bantu orang lain berkembang.'
+          'Temukan tutor terbaik untuk kebutuhan belajarmu, atau jadi tutor dan bantu orang lain berkembang.',
     },
     {
       'image': 'assets/images/get_started1.png',
       'title': 'One App, Countless Opportunities',
       'description':
-          'Belajar dan mengajar dalam satu aplikasi praktis. Semua bisa dimulai dari sini!'
+          'Belajar dan mengajar dalam satu aplikasi praktis. Semua bisa dimulai dari sini!',
     },
     {
       'image': 'assets/images/get_started2.png',
       'title': 'Chat with reliable tutor, without hassle.',
       'description':
-          'Langsung ngobrol dengan tutor andalanmu, tanpa ribet dan tanpa harus pindah platform.'
+          'Langsung ngobrol dengan tutor andalanmu, tanpa ribet dan tanpa harus pindah platform.',
     },
   ];
 
@@ -94,9 +94,10 @@ class _StartedScreenState extends State<StartedScreen> {
                 height: _currentPage == index ? 12 : 8,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: _currentPage == index
-                      ? Colors.purple
-                      : const Color.fromARGB(255, 255, 255, 255),
+                  color:
+                      _currentPage == index
+                          ? Colors.purple
+                          : const Color.fromARGB(255, 255, 255, 255),
                 ),
               ),
             ),
@@ -105,7 +106,7 @@ class _StartedScreenState extends State<StartedScreen> {
           ElevatedButton(
             onPressed: () {
               if (_currentPage == _slides.length - 1) {
-                Navigator.pushNamed(context, '/login');
+                Navigator.pushReplacementNamed(context, '/login');
               } else {
                 _pageController.nextPage(
                   duration: Duration(milliseconds: 300),

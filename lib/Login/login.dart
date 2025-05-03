@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:aplikasi_lajuuu_learning/pelajar/Login/code_verification.dart';
+import 'package:aplikasi_lajuuu_learning/Login/code_verification.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const LoginPage());
 }
 
-class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  State<LoginPage> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
@@ -35,36 +35,38 @@ class _LoginScreenState extends State<LoginScreen> {
   void _showTerms() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Ketentuan Penggunaan'),
-        content: const Text(
-          'Ini adalah syarat dan ketentuan penggunaan aplikasi Lajuuu Learning.',
-        ),
-        actions: [
-          TextButton(
-            child: const Text('Oke'),
-            onPressed: () => Navigator.pop(context),
-          )
-        ],
-      ),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Ketentuan Penggunaan'),
+            content: const Text(
+              'Ini adalah syarat dan ketentuan penggunaan aplikasi Lajuuu Learning.',
+            ),
+            actions: [
+              TextButton(
+                child: const Text('Oke'),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
     );
   }
 
   void _showPrivacy() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Kebijakan Privasi'),
-        content: const Text(
-          'Ini adalah kebijakan privasi aplikasi Lajuuu Learning.',
-        ),
-        actions: [
-          TextButton(
-            child: const Text('Oke'),
-            onPressed: () => Navigator.pop(context),
-          )
-        ],
-      ),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Kebijakan Privasi'),
+            content: const Text(
+              'Ini adalah kebijakan privasi aplikasi Lajuuu Learning.',
+            ),
+            actions: [
+              TextButton(
+                child: const Text('Oke'),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
     );
   }
 
@@ -95,10 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 24),
               const Text(
                 'Masuk & Daftar',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 24),
 
@@ -143,10 +142,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   child: const Text(
                     'Masuk',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                    ),
+                    style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
                 ),
               ),
