@@ -3,11 +3,11 @@ import 'filter_kategori.dart';
 import 'bottom_bar.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const SearchTutorScreen());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class SearchTutorScreen extends StatelessWidget {
+  const SearchTutorScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

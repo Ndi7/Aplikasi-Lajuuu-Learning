@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'headersmall_bar.dart'; // Import file header
 
 void main() {
-  runApp(const MyApp());
+  runApp(const ChatScreen());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class ChatScreen extends StatelessWidget {
+  const ChatScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
