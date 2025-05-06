@@ -1,15 +1,15 @@
 import 'package:aplikasi_lajuuu_learning/pengajar/jadwal.dart';
 import 'package:flutter/material.dart';
-import 'headersmall_bar.dart'; // Import HeaderSmallBar
+import '../widget/headersmall_bar.dart'; // Import HeaderSmallBar
 
 class HalamanPesanan extends StatefulWidget {
-  const HalamanPesanan({super.key});
+  const HalamanPesanan({Key? key}) : super(key: key);
 
   @override
-  HalamanPesananState createState() => HalamanPesananState();
+  _HalamanPesananState createState() => _HalamanPesananState();
 }
 
-class HalamanPesananState extends State<HalamanPesanan>
+class _HalamanPesananState extends State<HalamanPesanan>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
@@ -33,9 +33,9 @@ class HalamanPesananState extends State<HalamanPesanan>
         children: [
           // Menggunakan HeaderSmallBar
           HeaderSmallBar(
-            title: 'Pesanan',
+            title: 'Pesanan', // Judul header
             onBack: () {
-              Navigator.pop(context);
+              Navigator.pop(context); // Navigasi kembali
             },
           ),
           Container(
@@ -96,71 +96,62 @@ class HalamanPesananState extends State<HalamanPesanan>
       itemBuilder: (context, index) {
         final item = items[index];
         return Card(
-          color: Colors.white,
-          shadowColor: Colors.white,
-          child: Container(
-            margin: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(0),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha((0.1 * 255).toInt()),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: ListTile(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const DetailPengajar(),
+          margin: const EdgeInsets.only(bottom: 16),
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: InkWell(
+            onTap: () {
+              // Navigasi ke halaman detail Anda
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => DetailPengajar()),
+              );
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 8,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
                   ),
-                );
-              },
-              leading: Container(
-                width: 36,
-                height: 48,
-                decoration: BoxDecoration(
-                  image: const DecorationImage(
-                    image: AssetImage('assets/avatar_placeholder.png'),
-                    fit: BoxFit.cover,
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item['name'] ?? '',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          item['category'] ?? '',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              title: Text(
-                item['name'] ?? '',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-              subtitle: Text(
-                'Kategori: ${item['category']}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.normal,
-                  color: Colors.black,
-                ),
-              ),
-              trailing: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  status,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                  const Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: Colors.grey,
                   ),
-                ),
+                ],
               ),
             ),
           ),
