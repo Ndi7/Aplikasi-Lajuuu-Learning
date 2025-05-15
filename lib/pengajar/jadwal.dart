@@ -1,194 +1,296 @@
+import 'package:aplikasi_lajuuu_learning/pengajar/tentang.dart';
+import 'package:aplikasi_lajuuu_learning/pengajar/ulasan.dart';
+import 'package:aplikasi_lajuuu_learning/widget/headersmall_bar.dart';
 import 'package:flutter/material.dart';
 
-void main() => runApp(const MyApp());
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class DetailPengajar extends StatelessWidget {
+  const DetailPengajar({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: DaftarPesananPage(),
+      theme: ThemeData(
+        primarySwatch: Colors.purple,
+        scaffoldBackgroundColor: Colors.white,
+      ),
+      home: const ProfileScreen(),
     );
   }
 }
 
-class DaftarPesananPage extends StatefulWidget {
-  const DaftarPesananPage({super.key});
+class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({Key? key}) : super(key: key);
 
   @override
-  State<DaftarPesananPage> createState() => _DaftarPesananPageState();
+  State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _DaftarPesananPageState extends State<DaftarPesananPage> {
-  bool isExpanded = false;
-
-  final Map<String, dynamic> dataPesanan = {
-    "nama": "Lajuuu",
-    "matakuliah": "Pemrograman Dasar",
-    "metode": "Online",
-    "waktu": "16.00 - 17.00",
-    "total": 50000,
-    "status": "Sudah Dibayar",
-    "avatar": "https://i.pravatar.cc/150?img=3", // bisa ganti ke asset
-  };
+class _ProfileScreenState extends State<ProfileScreen> {
+  int _selectedIndex = 0; // Jadwal tab is selected
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Daftar Pemesanan',
-          style: TextStyle(color: Colors.white),
-        ),
-        backgroundColor: Colors.deepPurple,
-        leading: const Icon(Icons.arrow_back, color: Colors.white),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            GestureDetector(
-              onTap: () => setState(() => isExpanded = !isExpanded),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.deepPurple),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundImage: NetworkImage(dataPesanan["avatar"]),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        dataPesanan["nama"],
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    Icon(
-                      isExpanded
-                          ? Icons.keyboard_arrow_up
-                          : Icons.keyboard_arrow_down,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            if (isExpanded) ...[
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.black26),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Detail Pemesanan",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    _detailRow("Matakuliah", dataPesanan["matakuliah"]),
-                    _detailRow("Metode", dataPesanan["metode"]),
-                    _detailRow("Waktu", dataPesanan["waktu"]),
-                    const Divider(thickness: 1),
-                    Text.rich(
-                      TextSpan(
-                        children: [
-                          const TextSpan(text: "Total : "),
-                          TextSpan(
-                            text: "Rp ${dataPesanan['total']},000",
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Text(
-                      "( ${dataPesanan['status']} )",
-                      style: const TextStyle(fontStyle: FontStyle.italic),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        OutlinedButton(
-                          onPressed: () {
-                            // aksi tolak
-                          },
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.deepPurple),
-                          ),
-                          child: const Text(
-                            "TOLAK",
-                            style: TextStyle(color: Colors.deepPurple),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        ElevatedButton(
-                          onPressed: () {
-                            // aksi terima
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.deepPurple,
-                          ),
-                          child: const Text(
-                            "TERIMA",
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+      body: Column(
+        children: [
+          HeaderSmallBar(
+            title: 'Profile', // Judul header
+            onBack: () {
+              Navigator.pop(context);
+            },
+          ),
+          Stack(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 30, left: 15),
+                child: const Text(
+                  'Profil',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ],
-          ],
-        ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 1,
-        selectedItemColor: Colors.deepPurple,
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: 'Beranda',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.inventory_2_outlined),
-            label: 'Pesanan',
+
+          // Profile Picture Section
+          const SizedBox(height: 20),
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha((0.1 * 255).toInt()),
+                  blurRadius: 10,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: ClipOval(
+              //image disini
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat_outlined),
-            label: 'Chat',
+
+          // Name and Status
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                'Aji wibowo S. Kom.',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Color(0xff00E732),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'Aktif',
+                  style: TextStyle(
+                    color: Color(0xffFFFFFF),
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.star, color: Colors.amber, size: 20),
+              const Text('4.8', style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: 'Akun',
+
+          // Profession
+          const SizedBox(height: 4),
+          const Text(
+            'Rekayasa Perangkat Lunak',
+            style: TextStyle(
+              fontStyle: FontStyle.italic,
+              color: Colors.black54,
+            ),
           ),
+
+          // Tabs
+          const SizedBox(height: 16),
+          Container(
+            decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: Colors.black12)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildTab('Jadwal', 0),
+                _buildTab('Tentang', 1),
+                _buildTab('Ulasan', 2),
+              ],
+            ),
+          ),
+
+          // Jadwal Content
+          const SizedBox(height: 20),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Tentang',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text(
+                      'Online',
+                      style: TextStyle(fontSize: 14, color: Colors.black87),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Waktu',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 10,
+                    children: [
+                      _buildTimeSlot('15.00-15.10', false),
+                      _buildTimeSlot('15.00-15.30', true),
+                      _buildTimeSlot('15.00-16.00', false),
+                      _buildTimeSlot('16.00-16.30', false),
+                      _buildTimeSlot('19.00-20.00', false),
+                      _buildTimeSlot('19.00-19.30', true),
+                    ],
+                  ),
+                  const Spacer(),
+                  _buildChatButton(),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          ),
+
+          // Bottom Navigation
         ],
+      ),
+      // bottomNavigationBar: BottomBar(),
+    );
+  }
+
+  Widget _buildTab(String title, int index) {
+    return InkWell(
+      onTap: () {
+        if (index == _selectedIndex) {
+          // Tab sudah aktif, tidak perlu melakukan apa-apa
+          return;
+        }
+
+        if (index == 1) {
+          // Tab Tentang
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => TentangPengajar()),
+          );
+        } else if (index == 2) {
+          // Tab Ulasan
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => UlasanPengajar()),
+          );
+        } else {
+          // Untuk tab Jadwal, cukup ganti _selectedIndex
+          setState(() {
+            _selectedIndex = index;
+          });
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color:
+                  _selectedIndex == index
+                      ? const Color(0xFF9747FF)
+                      : Colors.transparent,
+              width: 2,
+            ),
+          ),
+        ),
+        child: Text(
+          title,
+          style: TextStyle(
+            color:
+                _selectedIndex == index
+                    ? const Color(0xFF9747FF)
+                    : Colors.black,
+            fontWeight:
+                _selectedIndex == index ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
       ),
     );
   }
 
-  Widget _detailRow(String title, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        children: [
-          Expanded(flex: 2, child: Text(title)),
-          Expanded(flex: 3, child: Text(": $value")),
-        ],
+  Widget _buildTimeSlot(String time, bool isSelected) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: isSelected ? Colors.green : Colors.grey.shade300,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        time,
+        style: TextStyle(
+          fontSize: 14,
+          color: isSelected ? Colors.white : Colors.black87,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChatButton() {
+    return Container(
+      width: double.infinity,
+      height: 50,
+      decoration: BoxDecoration(
+        color: Color(0xff00E732),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Center(
+        child: Text(
+          'Chat',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
     );
   }
