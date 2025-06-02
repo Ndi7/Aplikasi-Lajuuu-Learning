@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: HomeScreen(), //ubah nama class kalau mau ke tampilan mana !
+      home: StartedScreen(), //ubah nama class kalau mau ke tampilan mana !
       routes: {
         '/login': (context) => LoginPage(),
         '/home': (context) => HomeScreen(),
