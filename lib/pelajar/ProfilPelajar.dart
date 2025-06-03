@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'bottom_bar.dart';
+import 'Hal_EditProfil_Pelajar.dart';
+import 'Hal_Info_Pelajar.dart';
 
 void main() {
   runApp(const MyApp());
@@ -48,20 +51,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: const BottomBar(
+        showBottomBar: true,
         currentIndex: 3,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Color(0xFF7C4DFF),
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Beranda'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.receipt_long),
-            label: 'Pesanan',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Chat'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Akun'),
-        ],
+        disableHighlight: false,
       ),
       body: CustomScrollView(
         slivers: [
@@ -129,7 +122,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Icons.arrow_forward_ios,
                             size: 16,
                           ),
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => InfoBantuanPage(),
+                              ),
+                            );
+                          },
                         ),
                         ListTile(
                           title: const Text(
@@ -155,7 +155,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           icon: const Icon(Icons.settings, color: Colors.white),
           iconSize: 20.0, // Menurunkan ukuran ikon setting
           onPressed: () {
-            // Arahkan ke halaman pengaturan atau edit profile
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => EditProfile()),
+            );
           },
         ),
       ),

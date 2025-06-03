@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:aplikasi_lajuuu_learning/pelajar/halaman_utama.dart';
 
-class VerifikasiKodePage extends StatefulWidget {
+class VerifikasiKodeGuruPage extends StatefulWidget {
   @override
-  _VerifikasiKodePageState createState() => _VerifikasiKodePageState();
+  _VerifikasiKodeGuruPageState createState() => _VerifikasiKodeGuruPageState();
 }
 
-class _VerifikasiKodePageState extends State<VerifikasiKodePage> {
+class _VerifikasiKodeGuruPageState extends State<VerifikasiKodeGuruPage> {
   final TextEditingController _kodeController = TextEditingController();
 
   @override

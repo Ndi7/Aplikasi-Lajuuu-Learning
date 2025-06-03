@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'headersmall_bar.dart';
 
 void main() {
   runApp(MyApp());
@@ -24,13 +25,11 @@ class _EditProfileState extends State<EditProfile> {
   String email = "Lajuuu@gmail.com";
   String contact = "081122223333";
   String language = "Indonesia";
-  String skill = "Flutter Developer";
 
   // Controller untuk menangani inputan teks
   TextEditingController _nameController = TextEditingController();
   TextEditingController _emailController = TextEditingController();
   TextEditingController _contactController = TextEditingController();
-  TextEditingController _skillController = TextEditingController();
 
   @override
   void initState() {
@@ -38,7 +37,6 @@ class _EditProfileState extends State<EditProfile> {
     _nameController.text = name;
     _emailController.text = email;
     _contactController.text = contact;
-    _skillController.text = skill;
   }
 
   @override
@@ -46,22 +44,17 @@ class _EditProfileState extends State<EditProfile> {
     _nameController.dispose();
     _emailController.dispose();
     _contactController.dispose();
-    _skillController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context); // Kembali ke halaman sebelumnya
-          },
-        ),
-        title: Text('Edit Profil', style: TextStyle(color: Colors.white)),
-        backgroundColor: Color(0xFF7C4DFF), // Menggunakan warna ungu
+      appBar: HeaderSmallBar(
+        title: 'Edit Profil',
+        onBack: () {
+          Navigator.pop(context);
+        },
       ),
       body: SingleChildScrollView(
         // Membuat tampilan menjadi scrollable
@@ -99,12 +92,6 @@ class _EditProfileState extends State<EditProfile> {
               keyboardType: TextInputType.phone,
             ),
             SizedBox(height: 16),
-            Text('Keahlian', style: TextStyle(fontWeight: FontWeight.bold)),
-            TextField(
-              controller: _skillController,
-              decoration: InputDecoration(hintText: "Masukkan keahlian Anda"),
-            ),
-            SizedBox(height: 16),
             Text('Bahasa', style: TextStyle(fontWeight: FontWeight.bold)),
             Row(
               children: [
@@ -140,7 +127,6 @@ class _EditProfileState extends State<EditProfile> {
                     name = _nameController.text;
                     email = _emailController.text;
                     contact = _contactController.text;
-                    skill = _skillController.text;
                   });
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Profil berhasil diperbarui!')),

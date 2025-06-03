@@ -1,6 +1,7 @@
 import 'package:aplikasi_lajuuu_learning/pengajar/jadwal.dart';
 import 'package:flutter/material.dart';
-import 'headersmall_bar.dart'; // Import HeaderSmallBar
+import 'headersmall_bar.dart';
+import 'bottom_bar.dart';
 
 class HalamanPesanan extends StatefulWidget {
   const HalamanPesanan({super.key});
@@ -28,6 +29,11 @@ class HalamanPesananState extends State<HalamanPesanan>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      bottomNavigationBar: const BottomBar(
+        showBottomBar: true,
+        currentIndex: 1,
+        disableHighlight: false,
+      ),
       backgroundColor: Colors.white,
       body: Column(
         children: [

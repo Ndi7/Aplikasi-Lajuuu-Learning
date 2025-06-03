@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class HeaderSmallBar extends StatelessWidget {
+class HeaderSmallBar extends StatelessWidget implements PreferredSizeWidget {
   final String title; // Teks judul yang akan tampil di header
   final VoidCallback? onBack;
 
@@ -38,6 +38,9 @@ class HeaderSmallBar extends StatelessWidget {
       ),
     );
   }
+
+  @override
+  Size get preferredSize => const Size.fromHeight(120);
 }
 
 class HeaderClipper extends CustomClipper<Path> {

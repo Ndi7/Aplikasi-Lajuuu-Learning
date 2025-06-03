@@ -1,6 +1,7 @@
 import 'package:aplikasi_lajuuu_learning/pengajar/tentang.dart';
 import 'package:aplikasi_lajuuu_learning/pengajar/ulasan.dart';
 import 'package:aplikasi_lajuuu_learning/widget/headersmall_bar.dart';
+import 'package:aplikasi_lajuuu_learning/pelajar/bottom_bar.dart';
 import 'package:flutter/material.dart';
 
 class DetailPengajar extends StatelessWidget {
@@ -32,6 +33,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      bottomNavigationBar: const BottomBar(
+        showBottomBar: true,
+        disableHighlight: false,
+      ),
       body: Column(
         children: [
           HeaderSmallBar(
