@@ -1,204 +1,302 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'filter_kategori.dart';
 import 'bottom_bar.dart';
 
-void main() {
-  runApp(const SearchTutorScreen());
-}
-
 class SearchTutorScreen extends StatelessWidget {
-  const SearchTutorScreen({super.key});
+  const SearchTutorScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        scaffoldBackgroundColor: Colors.white, // Warna dasar putih
-      ),
-      home: PengajarListPage(),
+      theme: ThemeData(scaffoldBackgroundColor: Colors.white),
+      home: const PengajarListPage(),
     );
   }
 }
 
-class PengajarListPage extends StatelessWidget {
-  PengajarListPage({super.key});
+class Pengajar {
+  final String name;
+  final String category;
+  final String photo;
+  final String status;
 
-  final List<Map<String, String>> pengajar = [
-    {
-      'nama': 'Aji Wibowo S. Kom.',
-      'kategori': 'Pemrograman dasar',
-      'foto': 'https://via.placeholder.com/150',
-    },
-    {
-      'nama': 'David Aguero S. SI.',
-      'kategori': 'Rekayasa Mobile',
-      'foto': 'https://via.placeholder.com/150',
-    },
-    {
-      'nama': 'Ayu Ingrid S.kom, M. Kom.',
-      'kategori': 'Bahasa pemrograman Linux',
-      'foto': 'https://via.placeholder.com/150',
-    },
-    {
-      'nama': 'Cynthia Ningrum',
-      'kategori': 'Bahasa Inggris industri',
-      'foto': 'https://via.placeholder.com/150',
-    },
-    {
-      'nama': 'Obaja Louis M. T.I.',
-      'kategori': 'Design UI/UX',
-      'foto': 'https://via.placeholder.com/150',
-    },
-  ];
+  Pengajar({
+    required this.name,
+    required this.category,
+    required this.photo,
+    required this.status,
+  });
+
+  factory Pengajar.fromFirestore(Map<String, dynamic> data) {
+    return Pengajar(
+      name: data['name'] ?? '',
+      category: data['category'] ?? '',
+      photo: data['photo'] ?? '',
+      status: data['status'] ?? '',
+    );
+  }
+}
+
+class PengajarListPage extends StatefulWidget {
+  const PengajarListPage({Key? key}) : super(key: key);
+
+  @override
+  State<PengajarListPage> createState() => _PengajarListPageState();
+}
+
+class _PengajarListPageState extends State<PengajarListPage> {
+  List<Pengajar> allPengajar = [];
+  List<Pengajar> filteredPengajar = [];
+
+  String searchQuery = '';
+  String? selectedCategory;
+  bool showFilter = false;
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchPengajar();
+  }
+
+  Future<void> fetchPengajar() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance.collection('pengajar').get();
+      final data =
+          snapshot.docs
+              .map((doc) => Pengajar.fromFirestore(doc.data()))
+              .toList();
+
+      setState(() {
+        allPengajar = data;
+        filteredPengajar =
+            data
+                .where((pengajar) => pengajar.status.toLowerCase() == 'active')
+                .toList();
+        isLoading = false;
+      });
+    } catch (e) {
+      print("Error fetching data: $e");
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  void filterPengajar(String query, {String? kategori}) {
+    final filtered =
+        allPengajar.where((pengajar) {
+          final pengajarName = pengajar.name.toLowerCase().trim();
+          final pengajarCategory = pengajar.category.toLowerCase().trim();
+          final pengajarStatus = pengajar.status.toLowerCase().trim();
+
+          final queryLower = query.toLowerCase().trim();
+          final kategoriDipilih = kategori?.toLowerCase().trim();
+
+          final matchesName = pengajarName.contains(queryLower);
+          final matchesCategory =
+              kategori == null || pengajarCategory == kategoriDipilih;
+          final isActive = pengajarStatus == 'active';
+
+          return matchesName && matchesCategory && isActive;
+        }).toList();
+
+    print("Kategori dipilih: $kategori");
+    print("Ditemukan ${filtered.length} pengajar");
+
+    setState(() {
+      searchQuery = query;
+      selectedCategory = kategori;
+      filteredPengajar = filtered;
+    });
+  }
+
+  void toggleFilter() {
+    setState(() {
+      showFilter = !showFilter;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    double panelWidth = MediaQuery.of(context).size.width * 0.6;
+
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-          children: [
-            const SizedBox(height: 30), // Jarak dari atas
-            Row(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.chevron_left, color: Colors.white),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+        title: const Text(
+          "Cari Pengajar",
+          style: TextStyle(color: Colors.white),
+        ),
+        backgroundColor: Colors.deepPurpleAccent,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.filter_alt_outlined, color: Colors.white),
+            onPressed: toggleFilter,
+          ),
+        ],
+      ),
+      backgroundColor: Colors.white,
+      body: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
               children: [
-                Expanded(
-                  child: SizedBox(
-                    height: 30,
-                    child: TextField(
-                      decoration: InputDecoration(
-                        hintText: "Cari pengajar",
-                        filled: true, // Aktifkan warna latar
-                        fillColor: Colors.grey[300], // Warna abu-abu muda
-                        prefixIcon: const Icon(Icons.search),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(5),
-                          borderSide: BorderSide.none, // Hapus border
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 40,
+                        child: TextField(
+                          onChanged: (value) {
+                            filterPengajar(value, kategori: selectedCategory);
+                          },
+                          decoration: InputDecoration(
+                            hintText: "Cari pengajar",
+                            filled: true,
+                            fillColor: Colors.grey[300],
+                            prefixIcon: const Icon(Icons.search),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 8,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(5),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-                const SizedBox(width: 10),
-                IconButton(
-                  icon: const Icon(Icons.filter_alt_outlined),
-                  onPressed: () {
-                    showGeneralDialog(
-                      context: context,
-                      barrierDismissible: true,
-                      barrierLabel: "Filter",
-                      transitionDuration: const Duration(milliseconds: 300),
-                      pageBuilder: (context, animation, secondaryAnimation) {
-                        return Align(
-                          alignment:
-                              Alignment.centerRight, // Di sisi kiri layar
-                          child: Material(
-                            color: Colors.white,
-                            elevation: 8,
-                            borderRadius: const BorderRadius.only(
-                              topRight: Radius.circular(16),
-                              bottomRight: Radius.circular(16),
+                const SizedBox(height: 20),
+                Expanded(
+                  child:
+                      isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : filteredPengajar.isEmpty
+                          ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Image.asset(
+                                  'assets/images/no_data.png',
+                                  width: 200,
+                                  height: 200,
+                                ),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'Tidak ada pengajar ditemukan.',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
                             ),
-                            child: SizedBox(
-                              width:
-                                  MediaQuery.of(context).size.width *
-                                  0.5, // Setengah layar
-                              height: MediaQuery.of(context).size.height,
-                              child:
-                                  FilterKategori(), // Ganti dengan isi filternya
-                            ),
+                          )
+                          : ListView.builder(
+                            itemCount: filteredPengajar.length,
+                            itemBuilder: (context, index) {
+                              final item = filteredPengajar[index];
+                              return Column(
+                                children: [
+                                  Container(
+                                    color: Colors.white,
+                                    child: ListTile(
+                                      leading: ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.network(
+                                          item.photo,
+                                          width: 60,
+                                          height: 60,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                      title: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            item.name,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.green,
+                                              borderRadius:
+                                                  BorderRadius.circular(30),
+                                            ),
+                                            child: const Text(
+                                              "Aktif",
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 10,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      subtitle: Text(
+                                        "Kategori: ${item.category}",
+                                      ),
+                                    ),
+                                  ),
+                                  const Divider(height: 1, color: Colors.grey),
+                                ],
+                              );
+                            },
                           ),
-                        );
-                      },
-                      transitionBuilder: (
-                        context,
-                        animation,
-                        secondaryAnimation,
-                        child,
-                      ) {
-                        final offsetAnimation = Tween<Offset>(
-                          begin: const Offset(1, 0), // Dari kiri ke kanan
-                          end: Offset.zero,
-                        ).animate(animation);
-                        return SlideTransition(
-                          position: offsetAnimation,
-                          child: child,
-                        );
-                      },
-                    );
-                  },
                 ),
               ],
             ),
-            const SizedBox(height: 20), // Jarak ke bawah dari kotak pencarian
-            Expanded(
-              child: ListView.builder(
-                itemCount: pengajar.length,
-                itemBuilder: (context, index) {
-                  final item = pengajar[index];
-                  return Column(
-                    children: [
-                      Container(
-                        color: Colors.white, // Background putih
-                        child: ListTile(
-                          leading: Container(
-                            width: 30,
-                            height: 80,
-                            decoration: BoxDecoration(
-                              image: DecorationImage(
-                                image: NetworkImage(item['foto']!),
-                                fit:
-                                    BoxFit.cover, // Gambar mengisi seluruh area
-                              ),
-                              borderRadius: BorderRadius.circular(
-                                8,
-                              ), // Radius kecil
-                            ),
-                          ),
-                          title: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                item['nama']!,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.green,
-                                  borderRadius: BorderRadius.circular(30),
-                                ),
-                                child: const Text(
-                                  "Aktif",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10, // Ukuran font kecil
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          subtitle: Text("Kategori: ${item['kategori']}"),
-                        ),
-                      ),
-                      const Divider(
-                        height: 1, // Tinggi garis
-                        color: Colors.grey, // Warna garis pemisah
-                      ),
-                    ],
-                  );
+          ),
+
+          // Overlay hitam saat filter aktif
+          if (showFilter)
+            GestureDetector(
+              onTap: toggleFilter,
+              child: Container(color: Colors.black.withOpacity(0.3)),
+            ),
+
+          // Panel filter di sebelah kanan
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            top: 0,
+            bottom: 0,
+            right: showFilter ? 0 : -panelWidth,
+            child: Container(
+              width: panelWidth,
+              child: FilterKategori(
+                onSelectKategori: (selected) {
+                  filterPengajar(searchQuery, kategori: selected);
+                  toggleFilter();
                 },
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
       bottomNavigationBar: BottomBar(
         showBottomBar: true,

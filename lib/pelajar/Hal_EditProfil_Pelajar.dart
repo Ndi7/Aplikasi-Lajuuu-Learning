@@ -1,19 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 import 'headersmall_bar.dart';
-
-void main() {
-  runApp(MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false, // Menghilangkan debug banner
-      home: EditProfile(),
-    );
-  }
-}
 
 class EditProfile extends StatefulWidget {
   @override
@@ -21,30 +10,59 @@ class EditProfile extends StatefulWidget {
 }
 
 class _EditProfileState extends State<EditProfile> {
-  String name = "Lajuuu Learning";
-  String email = "Lajuuu@gmail.com";
-  String contact = "081122223333";
-  String language = "Indonesia";
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Controller untuk menangani inputan teks
   TextEditingController _nameController = TextEditingController();
-  TextEditingController _emailController = TextEditingController();
   TextEditingController _contactController = TextEditingController();
+  String email = '';
 
   @override
   void initState() {
     super.initState();
-    _nameController.text = name;
-    _emailController.text = email;
-    _contactController.text = contact;
+    _loadUserProfile();
   }
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    _contactController.dispose();
-    super.dispose();
+  Future<void> _loadUserProfile() async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      setState(() {
+        email = user.email ?? '';
+      });
+
+      final userDoc = await _firestore.collection('users').doc(user.uid).get();
+      if (userDoc.exists) {
+        final data = userDoc.data()!;
+        _nameController.text = data['name'] ?? '';
+        _contactController.text = data['contact'] ?? '';
+      }
+    }
+  }
+
+  Future<void> _saveProfile() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    final profileData = {
+      'name': _nameController.text,
+      'contactNumber': _contactController.text,
+      'email': user.email,
+      'createdAt': FieldValue.serverTimestamp(),
+    };
+
+    await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .set(profileData, SetOptions(merge: true));
+    await _firestore
+        .collection('pelajar')
+        .doc(user.uid)
+        .set(profileData, SetOptions(merge: true));
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Profil berhasil diperbarui!')));
+    Navigator.pop(context); // kembali ke halaman profil
   }
 
   @override
@@ -52,12 +70,9 @@ class _EditProfileState extends State<EditProfile> {
     return Scaffold(
       appBar: HeaderSmallBar(
         title: 'Edit Profil',
-        onBack: () {
-          Navigator.pop(context);
-        },
+        onBack: () => Navigator.pop(context),
       ),
       body: SingleChildScrollView(
-        // Membuat tampilan menjadi scrollable
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -77,11 +92,7 @@ class _EditProfileState extends State<EditProfile> {
             ),
             SizedBox(height: 16),
             Text('Email', style: TextStyle(fontWeight: FontWeight.bold)),
-            TextField(
-              controller: _emailController,
-              decoration: InputDecoration(hintText: "Masukkan email Anda"),
-              keyboardType: TextInputType.emailAddress,
-            ),
+            Text(email, style: TextStyle(color: Colors.grey[700])),
             SizedBox(height: 16),
             Text('Kontak', style: TextStyle(fontWeight: FontWeight.bold)),
             TextField(
@@ -91,49 +102,12 @@ class _EditProfileState extends State<EditProfile> {
               ),
               keyboardType: TextInputType.phone,
             ),
-            SizedBox(height: 16),
-            Text('Bahasa', style: TextStyle(fontWeight: FontWeight.bold)),
-            Row(
-              children: [
-                Radio<String>(
-                  value: 'Indonesia',
-                  groupValue: language,
-                  onChanged: (value) {
-                    setState(() {
-                      language = value!;
-                    });
-                  },
-                ),
-                Text('Indonesia'),
-                Radio<String>(
-                  value: 'Inggris',
-                  groupValue: language,
-                  onChanged: (value) {
-                    setState(() {
-                      language = value!;
-                    });
-                  },
-                ),
-                Text('Inggris'),
-              ],
-            ),
             SizedBox(height: 20),
-            // Menambahkan tombol simpan dengan penataan yang baik
             Center(
               child: ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    // Simpan perubahan ke dalam variabel state
-                    name = _nameController.text;
-                    email = _emailController.text;
-                    contact = _contactController.text;
-                  });
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Profil berhasil diperbarui!')),
-                  );
-                },
+                onPressed: _saveProfile,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF7C4DFF), // Menggunakan warna ungu
+                  backgroundColor: Color(0xFF7C4DFF),
                   padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
                 ),
                 child: Text(

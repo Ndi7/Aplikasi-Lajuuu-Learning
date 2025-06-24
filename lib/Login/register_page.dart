@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:aplikasi_lajuuu_learning/pengajar/halaman_utama.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -10,11 +12,25 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _namaController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _usernameController = TextEditingController();
-  final _universitasController = TextEditingController();
-  String? _namaFileSertifikat;
+  final _universityController = TextEditingController();
+  final _contacNumberController = TextEditingController();
+  final _kategoriLainnyaController = TextEditingController();
+  final _sertifikatLinkController = TextEditingController();
+
+  String? _kategoriDipilih;
+  bool _showKategoriLainnya = false;
+
+  final List<String> _kategoriList = [
+    'Pemrograman Dasar',
+    'Rekayasa Mobile',
+    'Bahasa Pemrograman Linux',
+    'Desain UI/UX',
+    'Python',
+    'C++',
+    'Javascript',
+    'HTML dan CSS',
+    'Lainnya',
+  ];
 
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
@@ -32,47 +48,79 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Future<void> _pickFile() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf', 'jpg', 'png'],
-    );
-
-    if (result != null && result.files.single.name.isNotEmpty) {
-      setState(() {
-        _namaFileSertifikat = result.files.single.name;
-      });
-    }
-  }
-
-  void _submitForm() {
+  Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      if (_namaFileSertifikat == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Silakan unggah file sertifikasi terlebih dahulu'),
-          ),
-        );
-        return;
-      }
+      try {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Tidak ditemukan akun Google')),
+          );
+          return;
+        }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Pendaftaran berhasil!')));
+        final selectedCategory =
+            _kategoriDipilih == 'Lainnya'
+                ? _kategoriLainnyaController.text.trim()
+                : _kategoriDipilih;
+
+        final pengajarRef = FirebaseFirestore.instance
+            .collection('pengajar')
+            .doc(user.uid);
+
+        final data = {
+          'uid': user.uid,
+          'name': user.displayName ?? '',
+          'email': user.email ?? '',
+          'university': _universityController.text.trim(),
+          'contacNumber': _contacNumberController.text.trim(),
+          'category': selectedCategory,
+          'sertificationUrl': _sertifikatLinkController.text.trim(),
+          'role': 'pengajar',
+          'createdAt': FieldValue.serverTimestamp(),
+        };
+
+        await pengajarRef.set(data);
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .set(data);
+
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Pendaftaran berhasil')));
+
+        _formKey.currentState!.reset();
+        setState(() {
+          _kategoriDipilih = null;
+          _showKategoriLainnya = false;
+        });
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomePageTeacher()),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal mendaftar: $e')));
+      }
     }
   }
 
   @override
   void dispose() {
-    _namaController.dispose();
-    _emailController.dispose();
-    _usernameController.dispose();
-    _universitasController.dispose();
+    _universityController.dispose();
+    _contacNumberController.dispose();
+    _kategoriLainnyaController.dispose();
+    _sertifikatLinkController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -83,108 +131,97 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               children: [
                 const SizedBox(height: 10),
-                Center(
-                  child: Column(
-                    children: [
-                      Image.asset(
-                        'assets/images/Logo Apk Lajuuu.png',
-                        width: 250,
-                        height: 250,
-                      ),
-                      const SizedBox(height: 10),
-                      const Text(
-                        'Daftar',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                TextFormField(
-                  controller: _namaController,
-                  decoration: _inputDecoration('Nama Lengkap'),
-                  validator:
-                      (value) =>
-                          value == null || value.isEmpty ? 'Wajib diisi' : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _emailController,
-                  decoration: _inputDecoration('Email'),
-                  validator:
-                      (value) =>
-                          value == null || value.isEmpty ? 'Wajib diisi' : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _usernameController,
-                  decoration: _inputDecoration('Username'),
-                  validator:
-                      (value) =>
-                          value == null || value.isEmpty ? 'Wajib diisi' : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _universitasController,
-                  decoration: _inputDecoration('Universitas'),
-                  validator:
-                      (value) =>
-                          value == null || value.isEmpty ? 'Wajib diisi' : null,
+                Image.asset('assets/images/Logo Apk Lajuuu.png', height: 200),
+                const Text(
+                  'Daftar Pengajar',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 20),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _namaFileSertifikat ?? 'Belum ada file sertifikat',
-                        style: const TextStyle(fontSize: 14),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    ElevatedButton(
-                      onPressed: _pickFile,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF7C4DFF),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'Upload',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ],
+                if (user != null) ...[
+                  Text(
+                    "Nama: ${user.displayName}",
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  Text(
+                    "Email: ${user.email}",
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                TextFormField(
+                  controller: _contacNumberController,
+                  decoration: _inputDecoration('Nomor Telepon'),
+                  keyboardType: TextInputType.phone,
+                  validator: (value) => value!.isEmpty ? 'Wajib diisi' : null,
                 ),
-
-                const SizedBox(height: 30),
-
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _submitForm,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF7C4DFF),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _universityController,
+                  decoration: _inputDecoration('Universitas'),
+                  validator: (value) => value!.isEmpty ? 'Wajib diisi' : null,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _kategoriDipilih,
+                  decoration: _inputDecoration('Kategori Materi'),
+                  items:
+                      _kategoriList
+                          .map(
+                            (kategori) => DropdownMenuItem(
+                              value: kategori,
+                              child: Text(kategori),
+                            ),
+                          )
+                          .toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _kategoriDipilih = value;
+                      _showKategoriLainnya = value == 'Lainnya';
+                    });
+                  },
+                  validator: (value) => value == null ? 'Pilih kategori' : null,
+                ),
+                if (_showKategoriLainnya)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: TextFormField(
+                      controller: _kategoriLainnyaController,
+                      decoration: _inputDecoration('Tulis Kategori Lainnya'),
+                      validator:
+                          (value) =>
+                              _showKategoriLainnya && value!.isEmpty
+                                  ? 'Wajib diisi'
+                                  : null,
                     ),
-                    child: const Text(
-                      'Daftar',
-                      style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _sertifikatLinkController,
+                  decoration: _inputDecoration(
+                    'Link Sertifikat (contoh: Google Drive PDF)',
+                  ),
+                  validator:
+                      (value) =>
+                          value == null || value.isEmpty
+                              ? 'Wajib isi link sertifikat'
+                              : null,
+                ),
+                const SizedBox(height: 30),
+                ElevatedButton(
+                  onPressed: _submitForm,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF7C4DFF),
+                    minimumSize: const Size.fromHeight(50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                  child: const Text(
+                    'Daftar',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../widget/headersmall_bar.dart'; // Import file header
+import '../widget/headersmall_bar.dart';
+import 'package:aplikasi_lajuuu_learning/pengajar/bottom_bar_teacher.dart';
 
 void main() {
   runApp(const MyApp());
@@ -89,17 +90,20 @@ class ChatListPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: HeaderSmallBar(
+        title: 'Pesan',
+        onBack: () {
+          Navigator.pop(context);
+        },
+      ),
+      bottomNavigationBar: const BottomBarTeacher(
+        showBottomBar: true,
+        currentIndex: 2,
+        disableHighlight: false,
+      ),
       backgroundColor: Colors.white,
       body: Column(
         children: [
-          // Header menggunakan HeaderSmallBar
-          HeaderSmallBar(
-            title: 'Chat',
-            onBack: () {
-              // Aksi ketika tombol back ditekan
-              Navigator.maybePop(context);
-            },
-          ),
           // List Chat
           Expanded(
             child: Container(

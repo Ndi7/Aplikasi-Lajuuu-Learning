@@ -1,4 +1,4 @@
-import 'package:aplikasi_lajuuu_learning/pengajar/jadwal.dart';
+import 'package:aplikasi_lajuuu_learning/pelajar/jadwal_student.dart';
 import 'package:flutter/material.dart';
 import 'headersmall_bar.dart';
 import 'bottom_bar.dart';
