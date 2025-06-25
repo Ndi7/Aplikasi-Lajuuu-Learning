@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:aplikasi_lajuuu_learning/pelajar/headersmall_bar.dart';
 import 'edit_profil.dart';
-import 'Page_info&bantuan_teacher.dart';
+import 'package:aplikasi_lajuuu_learning/pengajar/Page_info&bantuan_teacher.dart';
 
 void main() {
   runApp(
@@ -20,8 +20,6 @@ class PengaturanPage extends StatefulWidget {
 }
 
 class _PengaturanPageState extends State<PengaturanPage> {
-  String _selectedLanguage = 'Indonesia';
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -32,64 +30,62 @@ class _PengaturanPageState extends State<PengaturanPage> {
         },
       ),
       backgroundColor: Colors.white,
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 70),
-            Container(
-              width: 330,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey, width: 1),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 10,
-                    offset: Offset(0, 10),
-                  ),
-                ],
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(height: 20),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 24,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey, width: 1),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 10,
+                      offset: Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildMenuItem(
+                      "Edit Profil",
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EditProfilePage(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    _buildMenuItem(
+                      "Info",
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => InfoBantuanPage(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildMenuItem(
-                    "Edit Profil",
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => EditProfilePage(),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    "Bahasa",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  _buildLanguageOption("Indonesia"),
-                  _buildLanguageOption("Inggris"),
-                  const SizedBox(height: 24),
-                  _buildMenuItem(
-                    "Info",
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => InfoBantuanPage(),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -115,24 +111,6 @@ class _PengaturanPageState extends State<PengaturanPage> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildLanguageOption(String language) {
-    return RadioListTile<String>(
-      contentPadding: EdgeInsets.zero,
-      title: Text(
-        language,
-        style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w500),
-      ),
-      value: language,
-      groupValue: _selectedLanguage,
-      activeColor: Colors.deepPurple,
-      onChanged: (value) {
-        setState(() {
-          _selectedLanguage = value!;
-        });
-      },
     );
   }
 }

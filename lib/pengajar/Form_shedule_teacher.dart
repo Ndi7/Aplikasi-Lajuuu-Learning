@@ -1,183 +1,90 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: TimeAvailabilityScreen(),
-    );
-  }
-}
-
-class TimeRange {
-  TimeOfDay start;
-  TimeOfDay end;
-
-  TimeRange({required this.start, required this.end});
-}
+import 'package:aplikasi_lajuuu_learning/pengajar/Harga_teacher.dart';
+import '../widget/headersmall_bar.dart';
 
 class TimeAvailabilityScreen extends StatefulWidget {
-  const TimeAvailabilityScreen({super.key});
+  const TimeAvailabilityScreen({Key? key}) : super(key: key);
 
   @override
-  State<TimeAvailabilityScreen> createState() => _TimeAvailabilityScreenState();
+  _TimeAvailabilityScreenState createState() => _TimeAvailabilityScreenState();
 }
 
 class _TimeAvailabilityScreenState extends State<TimeAvailabilityScreen> {
-  List<TimeRange> timeRanges = [
-    TimeRange(
-      start: const TimeOfDay(hour: 20, minute: 0),
-      end: const TimeOfDay(hour: 21, minute: 0),
-    ),
-  ];
+  List<TimeRange> timeRanges = [];
 
-  Future<void> _selectTime(
-    BuildContext context,
-    int index,
-    bool isStartTime,
-  ) async {
-    final TimeOfDay initial =
-        isStartTime ? timeRanges[index].start : timeRanges[index].end;
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: initial,
-    );
-    if (picked != null) {
-      setState(() {
-        if (isStartTime) {
-          timeRanges[index].start = picked;
-        } else {
-          timeRanges[index].end = picked;
-        }
-      });
-    }
-  }
-
-  String _formatTime(TimeOfDay time) {
-    final hour = time.hour.toString().padLeft(2, '0');
-    final minute = time.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
-  }
-
-  void _addTimeRange() {
-    setState(() {
-      timeRanges.add(
-        TimeRange(
-          start: const TimeOfDay(hour: 8, minute: 0),
-          end: const TimeOfDay(hour: 9, minute: 0),
-        ),
-      );
-    });
-  }
-
-  void _nextAction() {
-    // Aksi saat tombol Selanjutnya ditekan
-  }
+  TimeOfDay selectedStartTime = const TimeOfDay(hour: 09, minute: 00);
+  TimeOfDay selectedEndTime = const TimeOfDay(hour: 10, minute: 00);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Tambah waktu ketersediaan',
-          style: TextStyle(color: Colors.white),
-        ),
-        backgroundColor: Colors.deepPurple,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+      appBar: HeaderSmallBar(
+        title: 'Pilih Jam Ketersediaan',
+        onBack: () {
+          Navigator.pop(context);
+        },
       ),
+      backgroundColor: Colors.white,
       body: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          16,
-          16,
-          16,
-          24,
-        ), // Jarak bawah ditambahkan
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            Expanded(
-              child: ListView.builder(
-                itemCount: timeRanges.length,
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text("Dari "),
-                        const SizedBox(width: 8),
-                        ElevatedButton(
-                          onPressed: () => _selectTime(context, index, true),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Colors.black,
-                          ),
-                          child: Text(_formatTime(timeRanges[index].start)),
-                        ),
-                        const SizedBox(width: 16),
-                        const Text("Sampai "),
-                        const SizedBox(width: 8),
-                        ElevatedButton(
-                          onPressed: () => _selectTime(context, index, false),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Colors.black,
-                          ),
-                          child: Text(_formatTime(timeRanges[index].end)),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+            _buildTimePickerRow(),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: const Text(
+                'Tambah Waktu',
+                style: TextStyle(color: Colors.white),
+              ),
+              onPressed: _addTimeRange,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFF7C4DFF),
               ),
             ),
-
-            // Bagian bawah tapi tidak menempel ke ujung layar
-            Padding(
-              padding: const EdgeInsets.only(top: 16.0),
-              child: Column(
-                children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton.icon(
-                      onPressed: _addTimeRange,
-                      icon: const Icon(Icons.add, color: Colors.deepPurple),
-                      label: const Text(
-                        "Tambah Waktu",
-                        style: TextStyle(color: Colors.deepPurple),
+            const SizedBox(height: 20),
+            Expanded(
+              child:
+                  timeRanges.isEmpty
+                      ? const Center(
+                        child: Text('Belum ada waktu ditambahkan.'),
+                      )
+                      : ListView.builder(
+                        itemCount: timeRanges.length,
+                        itemBuilder: (context, index) {
+                          final range = timeRanges[index];
+                          return ListTile(
+                            title: Text(
+                              '${_formatTime(range.start)} - ${_formatTime(range.end)}',
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () {
+                                setState(() {
+                                  timeRanges.removeAt(index);
+                                });
+                              },
+                            ),
+                          );
+                        },
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: ElevatedButton(
-                      onPressed: _nextAction,
-                      style: ButtonStyle(
-                        backgroundColor: WidgetStateProperty.all(
-                          Colors.deepPurple,
-                        ),
-                        foregroundColor: WidgetStateProperty.all(Colors.white),
-                        overlayColor: WidgetStateProperty.all(
-                          Colors.transparent,
-                        ),
-                      ),
-                      child: const Text(
-                        'Selanjutnya',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: _saveToFirestore,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFF7C4DFF),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 12,
+                ),
+              ),
+              child: const Text(
+                'Simpan dan Lanjutkan',
+                style: TextStyle(fontSize: 16, color: Colors.white),
               ),
             ),
           ],
@@ -185,4 +92,102 @@ class _TimeAvailabilityScreenState extends State<TimeAvailabilityScreen> {
       ),
     );
   }
+
+  Widget _buildTimePickerRow() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        _buildTimeButton('Mulai', selectedStartTime, (picked) {
+          if (picked != null) {
+            setState(() {
+              selectedStartTime = picked;
+            });
+          }
+        }),
+        _buildTimeButton('Selesai', selectedEndTime, (picked) {
+          if (picked != null) {
+            setState(() {
+              selectedEndTime = picked;
+            });
+          }
+        }),
+      ],
+    );
+  }
+
+  Widget _buildTimeButton(
+    String label,
+    TimeOfDay time,
+    void Function(TimeOfDay?) onTimePicked,
+  ) {
+    return Column(
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+        ElevatedButton(
+          onPressed: () async {
+            TimeOfDay? picked = await showTimePicker(
+              context: context,
+              initialTime: time,
+            );
+            onTimePicked(picked);
+          },
+          child: Text(_formatTime(time)),
+        ),
+      ],
+    );
+  }
+
+  void _addTimeRange() {
+    final startMinutes = selectedStartTime.hour * 60 + selectedStartTime.minute;
+    final endMinutes = selectedEndTime.hour * 60 + selectedEndTime.minute;
+
+    if (startMinutes >= endMinutes) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Waktu mulai harus sebelum waktu selesai."),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      timeRanges.add(TimeRange(start: selectedStartTime, end: selectedEndTime));
+    });
+  }
+
+  Future<void> _saveToFirestore() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final slotsRef = FirebaseFirestore.instance
+        .collection('pengajar')
+        .doc(uid)
+        .collection('time_slots');
+
+    for (var range in timeRanges) {
+      await slotsRef.add({
+        'startTime': _formatTime(range.start),
+        'endTime': _formatTime(range.end),
+        'available': true,
+      });
+    }
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const TambahJadwalScreen()),
+    );
+  }
+
+  String _formatTime(TimeOfDay time) {
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+}
+
+class TimeRange {
+  final TimeOfDay start;
+  final TimeOfDay end;
+
+  TimeRange({required this.start, required this.end});
 }

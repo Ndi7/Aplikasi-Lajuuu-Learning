@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:aplikasi_lajuuu_learning/widget/headersmall_bar.dart';
-
-void main() {
-  runApp(
-    MaterialApp(home: EditProfilePage(), debugShowCheckedModeBanner: false),
-  );
-}
 
 class EditProfilePage extends StatefulWidget {
   @override
@@ -16,21 +12,57 @@ class EditProfilePage extends StatefulWidget {
 class _EditProfilePageState extends State<EditProfilePage> {
   final _formKey = GlobalKey<FormState>();
 
-  // Controllers
-  TextEditingController _nameController = TextEditingController(
-    text: 'Aji Wibowo, S.Kom',
-  );
-  TextEditingController _emailController = TextEditingController(
-    text: 'Wibowo@gmail.com',
-  );
-  TextEditingController _contactController = TextEditingController(
-    text: '08112223333',
-  );
+  TextEditingController _nameController = TextEditingController();
+  TextEditingController _emailController = TextEditingController();
+  TextEditingController _contactController = TextEditingController();
   String? _certificationFileName;
+
+  final _auth = FirebaseAuth.instance;
+  final _firestore = FirebaseFirestore.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileData();
+  }
+
+  Future<void> _loadProfileData() async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      final doc = await _firestore.collection('pengajar').doc(user.uid).get();
+      final data = doc.data();
+      if (data != null) {
+        setState(() {
+          _nameController.text = data['nama'] ?? '';
+          _emailController.text = data['email'] ?? '';
+          _contactController.text = data['kontak'] ?? '';
+          _certificationFileName = data['sertifikat'];
+        });
+      }
+    }
+  }
+
+  Future<void> _updateProfile() async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      await _firestore.collection('pengajar').doc(user.uid).update({
+        'nama': _nameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'kontak': _contactController.text.trim(),
+        'sertifikat': _certificationFileName ?? '',
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Profil berhasil diperbarui")));
+
+      // Kembalikan nama ke halaman utama
+      Navigator.pop(context, _nameController.text.trim());
+    }
+  }
 
   Future<void> _pickCertificationFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles();
-
     if (result != null) {
       setState(() {
         _certificationFileName = result.files.single.name;
@@ -43,9 +75,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     return Scaffold(
       appBar: HeaderSmallBar(
         title: 'Edit Profil',
-        onBack: () {
-          Navigator.pop(context);
-        },
+        onBack: () => Navigator.pop(context),
       ),
       backgroundColor: Colors.grey[100],
       body: Center(
@@ -68,22 +98,21 @@ class _EditProfilePageState extends State<EditProfilePage> {
               key: _formKey,
               child: Column(
                 children: [
-                  // Foto Profil
                   Stack(
                     alignment: Alignment.center,
                     children: [
                       CircleAvatar(
                         radius: 50,
                         backgroundImage: AssetImage(
-                          'assets/images/get_started1.png',
-                        ), // Ubah sesuai path
+                          'assets/images/profile_cute.jpg',
+                        ),
                       ),
                       Positioned(
                         right: 0,
                         top: 0,
                         child: GestureDetector(
                           onTap: () {
-                            // Tambahkan aksi ubah foto
+                            // Tambahkan aksi ubah foto jika diperlukan
                           },
                           child: CircleAvatar(
                             radius: 14,
@@ -100,11 +129,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   ),
                   SizedBox(height: 20),
 
-                  // Nama
                   _buildTextField("Nama", _nameController),
                   SizedBox(height: 12),
 
-                  // Email
                   _buildTextField(
                     "Email",
                     _emailController,
@@ -112,7 +139,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   ),
                   SizedBox(height: 12),
 
-                  // Kontak
                   _buildTextField(
                     "Kontak",
                     _contactController,
@@ -120,7 +146,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   ),
                   SizedBox(height: 12),
 
-                  // Sertifikasi
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
@@ -150,14 +175,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
                   SizedBox(height: 20),
 
-                  // Tombol Edit
                   ElevatedButton(
                     onPressed: () {
                       if (_formKey.currentState!.validate()) {
-                        // Simpan data
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("Profil berhasil diedit")),
-                        );
+                        _updateProfile();
                       }
                     },
                     style: ElevatedButton.styleFrom(

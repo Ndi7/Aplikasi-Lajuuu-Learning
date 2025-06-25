@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:aplikasi_lajuuu_learning/pelajar/headersmall_bar.dart';
 
 void main() {
   runApp(
@@ -29,37 +30,14 @@ class InfoBantuanPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: HeaderSmallBar(
+        title: 'Pengaturan',
+        onBack: () {
+          Navigator.pop(context);
+        },
+      ),
       body: Column(
         children: [
-          ClipPath(
-            clipper: CustomAppBarClipper(),
-            child: Container(
-              height: 130, // Tambah tinggi header
-              color: Colors.deepPurple,
-              padding: const EdgeInsets.only(
-                top: 50,
-                left: 16,
-                right: 16,
-                bottom: 20,
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.arrow_back, color: Colors.white),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      "Info & Bantuan",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20, // Ukuran font sedikit lebih besar
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
           Expanded(
             child: ListView.builder(
               itemCount: faqItems.length,

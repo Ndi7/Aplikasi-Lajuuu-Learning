@@ -1,77 +1,20 @@
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(
-    MaterialApp(home: DaftarMateriPage(), debugShowCheckedModeBanner: false),
-  );
-}
+class FilterKategori extends StatefulWidget {
+  final Function(String?) onSelectKategori;
 
-class DaftarMateriPage extends StatefulWidget {
-  @override
-  _DaftarMateriPageState createState() => _DaftarMateriPageState();
-}
-
-class _DaftarMateriPageState extends State<DaftarMateriPage> {
-  bool showFilter = false;
-
-  void toggleFilter() {
-    setState(() {
-      showFilter = !showFilter;
-    });
-  }
+  const FilterKategori({Key? key, required this.onSelectKategori})
+    : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    double panelWidth =
-        MediaQuery.of(context).size.width * 0.5; // Setengah layar
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Daftar Materi'),
-        actions: [
-          IconButton(icon: Icon(Icons.filter_list), onPressed: toggleFilter),
-        ],
-      ),
-      body: Stack(
-        children: [
-          // Konten utama
-          Center(
-            child: Text(
-              'Konten Materi di Sini',
-              style: TextStyle(fontSize: 20),
-            ),
-          ),
-
-          // Overlay hitam saat filter aktif
-          if (showFilter)
-            GestureDetector(
-              onTap: toggleFilter,
-              child: Container(color: Colors.black.withOpacity(0.3)),
-            ),
-
-          // Panel filter setengah layar (slide dari kiri)
-          AnimatedPositioned(
-            duration: Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            top: 0,
-            bottom: 0,
-            left: showFilter ? 0 : -panelWidth,
-            child: Container(
-              width: panelWidth, // panel hanya setengah lebar layar
-              child: FilterKategori(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  State<FilterKategori> createState() => _FilterKategoriState();
 }
 
-class FilterKategori extends StatelessWidget {
+class _FilterKategoriState extends State<FilterKategori> {
   final List<String> kategori = [
     'Pemrograman Dasar',
-    'Rekayasa mobile',
-    'Bahasa pemrograman linux',
+    'Rekayasa Mobile',
+    'Bahasa Pemrograman Linux',
     'Bahasa Inggris Industri',
     'Desain UI/UX',
     'Python',
@@ -79,6 +22,8 @@ class FilterKategori extends StatelessWidget {
     'Javascript',
     'HTML dan CSS',
   ];
+
+  String? selectedKategori;
 
   @override
   Widget build(BuildContext context) {
@@ -88,33 +33,33 @@ class FilterKategori extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header ungu
           Container(
             width: double.infinity,
             color: Colors.deepPurpleAccent,
-            padding: EdgeInsets.all(16),
-            child: Text(
-              'Filter',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.normal,
-                fontSize: 16,
-              ),
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Filter',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.normal,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
             ),
           ),
-          SizedBox(height: 8),
-
-          // Label Kategori
-          Padding(
+          const SizedBox(height: 8),
+          const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.0),
             child: Text(
               'Kategori',
-              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+              style: TextStyle(color: Colors.black54, fontSize: 14),
             ),
           ),
-          SizedBox(height: 8),
-
-          // Chip List
+          const SizedBox(height: 8),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -123,16 +68,40 @@ class FilterKategori extends StatelessWidget {
                 runSpacing: 8,
                 children:
                     kategori.map((item) {
+                      final isSelected = item == selectedKategori;
                       return FilterChip(
                         label: Text(item),
-                        onSelected: (bool selected) {},
-                        selected: false,
+                        selected: isSelected,
+                        onSelected: (bool selected) {
+                          setState(() {
+                            selectedKategori = selected ? item : null;
+                          });
+                          widget.onSelectKategori(
+                            selected ? item : null,
+                          ); // Kirim null saat unselect
+                        },
+                        selectedColor: Colors.deepPurpleAccent,
+                        checkmarkColor: Colors.white,
                         backgroundColor: Colors.grey[200],
+                        labelStyle: TextStyle(
+                          color: isSelected ? Colors.white : Colors.black,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(5),
                         ),
                       );
                     }).toList(),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Center(
+              child: Text(
+                selectedKategori == null
+                    ? 'Tidak ada kategori dipilih'
+                    : 'Kategori dipilih: $selectedKategori',
+                style: const TextStyle(color: Colors.grey),
               ),
             ),
           ),

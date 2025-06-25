@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'bottom_bar.dart';
 import 'Hal_EditProfil_Pelajar.dart';
 import 'Hal_Info_Pelajar.dart';
+import 'package:aplikasi_lajuuu_learning/Login/login_student.dart';
 
 void main() {
   runApp(const MyApp());
@@ -31,21 +35,46 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   String name = '';
   String email = '';
-  String contact = '';
+  String contactNumber = '';
 
   @override
   void initState() {
     super.initState();
-    loadUserData();
+    loadFirebaseUser();
   }
 
-  Future<void> loadUserData() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      name = prefs.getString('name') ?? 'Nama Pengguna';
-      email = prefs.getString('email') ?? 'email@example.com';
-      contact = prefs.getString('contact') ?? '08XXXXXXXXXX';
-    });
+  void loadFirebaseUser() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
+
+      if (doc.exists) {
+        final data = doc.data()!;
+        setState(() {
+          name = data['name'] ?? 'Nama Pengguna';
+          email = data['email'] ?? user.email ?? 'email@example.com';
+          contactNumber = data['contact'] ?? '08XXXXXXXXXX';
+        });
+      }
+    }
+  }
+
+  Future<void> logoutUser() async {
+    await FirebaseAuth.instance.signOut();
+    await GoogleSignIn().signOut();
+
+    if (!mounted) return;
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => LoginScreenStudent()),
+      (Route<dynamic> route) => false,
+    );
   }
 
   @override
@@ -58,16 +87,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       body: CustomScrollView(
         slivers: [
-          // SliverAppBar to keep profile info sticky at the top
           SliverAppBar(
             expandedHeight: 200.0,
             floating: false,
-            pinned: true, // Ensures the AppBar stays visible
+            pinned: true,
             flexibleSpace: FlexibleSpaceBar(
               title: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
+                children: const [
+                  Text(
                     'Profil',
                     style: TextStyle(
                       color: Colors.white,
@@ -89,16 +117,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     radius: 50,
                     backgroundColor: Colors.white,
                     backgroundImage: AssetImage(
-                      'assets/avatar.png',
-                    ), // Ganti dengan gambar lokal
+                      'assets/images/female profil.jpg',
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-          // Main content of the profile
           SliverList(
             delegate: SliverChildListDelegate([
+              const SizedBox(height: 24),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: Card(
@@ -110,13 +138,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     padding: const EdgeInsets.all(20),
                     child: Column(
                       children: [
-                        InfoRow(label: "Nama", value: name),
+                        InfoRow(label: "Nama", value: name, icon: Icons.person),
                         const SizedBox(height: 10),
-                        InfoRow(label: "Email", value: email),
+                        InfoRow(
+                          label: "Email",
+                          value: email,
+                          icon: Icons.email,
+                        ),
                         const SizedBox(height: 10),
-                        InfoRow(label: "Kontak", value: contact),
+                        InfoRow(
+                          label: "Kontak",
+                          value: contactNumber,
+                          icon: Icons.phone,
+                        ),
                         const Divider(height: 30),
                         ListTile(
+                          leading: const Icon(Icons.info, color: Colors.grey),
                           title: const Text("Info & Bantuan"),
                           trailing: const Icon(
                             Icons.arrow_forward_ios,
@@ -132,11 +169,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           },
                         ),
                         ListTile(
+                          leading: const Icon(Icons.logout, color: Colors.grey),
                           title: const Text(
                             "Keluar",
                             style: TextStyle(color: Colors.red),
                           ),
-                          onTap: () {},
+                          onTap: logoutUser,
                         ),
                       ],
                     ),
@@ -147,18 +185,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ],
       ),
-      // Tombol Setting di pojok kanan atas dengan ikon lebih kecil
       floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
       floatingActionButton: Padding(
         padding: const EdgeInsets.all(16.0),
         child: IconButton(
           icon: const Icon(Icons.settings, color: Colors.white),
-          iconSize: 20.0, // Menurunkan ukuran ikon setting
+          iconSize: 20.0,
           onPressed: () {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => EditProfile()),
-            );
+            ).then((_) {
+              loadFirebaseUser(); // refresh setelah edit
+            });
           },
         ),
       ),
@@ -169,13 +208,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
 class InfoRow extends StatelessWidget {
   final String label;
   final String value;
+  final IconData icon;
 
-  const InfoRow({super.key, required this.label, required this.value});
+  const InfoRow({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
+        Icon(icon, color: Colors.grey),
+        const SizedBox(width: 10),
         Text('$label:', style: const TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(width: 8),
         Expanded(

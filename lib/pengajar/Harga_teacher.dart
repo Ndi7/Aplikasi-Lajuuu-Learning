@@ -1,20 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: TambahJadwalScreen(),
-    );
-  }
-}
+import '../widget/headersmall_bar.dart';
 
 class TambahJadwalScreen extends StatefulWidget {
   const TambahJadwalScreen({super.key});
@@ -30,7 +18,7 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
   @override
   void initState() {
     super.initState();
-    _addScheduleField(); // Tambah default satu baris
+    _addScheduleField();
   }
 
   void _addScheduleField() {
@@ -42,10 +30,49 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
     });
   }
 
-  void _saveSchedule() {
-    // Aksi penyimpanan
-    for (var item in scheduleList) {
-      print("Durasi: ${item['duration']!.text}, Harga: ${item['price']!.text}");
+  Future<void> _saveSchedule() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("User belum login.")));
+      return;
+    }
+
+    final pricingRef = FirebaseFirestore.instance
+        .collection('pengajar')
+        .doc(uid)
+        .collection('pricing');
+
+    try {
+      for (var item in scheduleList) {
+        final durationText = item['duration']!.text.trim();
+        final priceText = item['price']!.text.trim();
+
+        if (durationText.isEmpty || priceText.isEmpty) continue;
+
+        final duration = int.tryParse(durationText) ?? 0;
+        final price = int.tryParse(priceText) ?? 0;
+
+        if (duration <= 0 || price <= 0) continue;
+
+        await pricingRef.add({
+          'metode': selectedMode.toLowerCase(),
+          'duration': duration,
+          'price': price,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Data harga berhasil disimpan')),
+      );
+
+      Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Gagal menyimpan: $e')));
     }
   }
 
@@ -61,17 +88,13 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Tambah jadwal',
-          style: TextStyle(color: Colors.white),
-        ),
-        backgroundColor: Colors.deepPurple,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+      appBar: HeaderSmallBar(
+        title: 'Tambah Harga',
+        onBack: () {
+          Navigator.pop(context);
+        },
       ),
+      backgroundColor: Colors.white,
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -119,7 +142,7 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
                             controller: scheduleList[index]['duration'],
                             keyboardType: TextInputType.number,
                             decoration: const InputDecoration(
-                              hintText: 'Masukkan menit',
+                              labelText: 'Durasi (menit)',
                               border: OutlineInputBorder(),
                             ),
                           ),
@@ -131,7 +154,7 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
                             controller: scheduleList[index]['price'],
                             keyboardType: TextInputType.number,
                             decoration: const InputDecoration(
-                              hintText: 'Masukkan harga',
+                              labelText: 'Harga (Rp)',
                               border: OutlineInputBorder(),
                             ),
                           ),
@@ -140,7 +163,10 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
                         if (index == scheduleList.length - 1)
                           IconButton(
                             onPressed: _addScheduleField,
-                            icon: const Icon(Icons.add, color: Colors.grey),
+                            icon: const Icon(
+                              Icons.add,
+                              color: Colors.deepPurple,
+                            ),
                           ),
                       ],
                     ),
@@ -148,15 +174,22 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
                 },
               ),
             ),
+            const SizedBox(height: 10),
             Align(
               alignment: Alignment.centerRight,
               child: ElevatedButton(
                 onPressed: _saveSchedule,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
-                  foregroundColor: Colors.white,
+                  backgroundColor: const Color(0xFF7C4DFF),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                 ),
-                child: const Text('Simpan'),
+                child: const Text(
+                  'Simpan',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ),
           ],

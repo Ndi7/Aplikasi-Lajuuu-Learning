@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:aplikasi_lajuuu_learning/widget/headersmall_bar.dart';
 
 class ProfileInfo extends StatelessWidget {
   final String asalUniversitas;
@@ -52,7 +53,12 @@ class MyProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Informasi Profil')),
+      appBar: HeaderSmallBar(
+        title: 'Pengaturan',
+        onBack: () {
+          Navigator.pop(context);
+        },
+      ),
       body: ProfileInfo(
         asalUniversitas: 'Politeknik Negeri Batam',
         sertifikasi: 'Database Mysql',

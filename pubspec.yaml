@@ -42,6 +42,10 @@ dependencies:
   intl: ^0.20.2
   cloud_firestore: ^5.6.7
   http: ^0.13.3
+  font_awesome_flutter: ^10.8.0
+  google_sign_in: ^6.3.0
+  url_launcher: ^6.2.5
+
 
 dev_dependencies:
   flutter_test:
@@ -71,6 +75,12 @@ flutter:
     - assets/images/get_started2.png
     - assets/images/get_started1.png
     - assets/images/Logo Apk Lajuuu.png
+    - assets/images/no_data.png
+    - assets/images/female profil.jpg
+    - assets/images/profile_cute.jpg
+    
+
+
 
 
   # An image asset can refer to one or more resolution-specific "variants", see
