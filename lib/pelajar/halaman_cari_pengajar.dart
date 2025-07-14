@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'filter_kategori.dart';
 import 'bottom_bar.dart';
+import 'jadwal_student.dart';
 
 class SearchTutorScreen extends StatelessWidget {
   const SearchTutorScreen({Key? key}) : super(key: key);
@@ -17,24 +20,27 @@ class SearchTutorScreen extends StatelessWidget {
 }
 
 class Pengajar {
+  final String id;
   final String name;
   final String category;
-  final String photo;
-  final String status;
+  final String photoPath;
+  final bool status;
 
   Pengajar({
+    required this.id,
     required this.name,
     required this.category,
-    required this.photo,
+    required this.photoPath,
     required this.status,
   });
 
-  factory Pengajar.fromFirestore(Map<String, dynamic> data) {
+  factory Pengajar.fromFirestore(String id, Map<String, dynamic> data) {
     return Pengajar(
+      id: id,
       name: data['name'] ?? '',
       category: data['category'] ?? '',
-      photo: data['photo'] ?? '',
-      status: data['status'] ?? '',
+      photoPath: data['photoPath'] ?? '',
+      status: data['status'] ?? true,
     );
   }
 }
@@ -71,15 +77,13 @@ class _PengajarListPageState extends State<PengajarListPage> {
           await FirebaseFirestore.instance.collection('pengajar').get();
       final data =
           snapshot.docs
-              .map((doc) => Pengajar.fromFirestore(doc.data()))
+              .map((doc) => Pengajar.fromFirestore(doc.id, doc.data()))
               .toList();
 
       setState(() {
         allPengajar = data;
         filteredPengajar =
-            data
-                .where((pengajar) => pengajar.status.toLowerCase() == 'active')
-                .toList();
+            data.where((pengajar) => pengajar.status == true).toList();
         isLoading = false;
       });
     } catch (e) {
@@ -95,7 +99,7 @@ class _PengajarListPageState extends State<PengajarListPage> {
         allPengajar.where((pengajar) {
           final pengajarName = pengajar.name.toLowerCase().trim();
           final pengajarCategory = pengajar.category.toLowerCase().trim();
-          final pengajarStatus = pengajar.status.toLowerCase().trim();
+          final pengajarStatus = pengajar.status;
 
           final queryLower = query.toLowerCase().trim();
           final kategoriDipilih = kategori?.toLowerCase().trim();
@@ -103,13 +107,10 @@ class _PengajarListPageState extends State<PengajarListPage> {
           final matchesName = pengajarName.contains(queryLower);
           final matchesCategory =
               kategori == null || pengajarCategory == kategoriDipilih;
-          final isActive = pengajarStatus == 'active';
+          final isActive = pengajarStatus == true;
 
           return matchesName && matchesCategory && isActive;
         }).toList();
-
-    print("Kategori dipilih: $kategori");
-    print("Ditemukan ${filtered.length} pengajar");
 
     setState(() {
       searchQuery = query;
@@ -122,6 +123,34 @@ class _PengajarListPageState extends State<PengajarListPage> {
     setState(() {
       showFilter = !showFilter;
     });
+  }
+
+  Widget buildPengajarImage(String photoPath) {
+    if (photoPath.isNotEmpty) {
+      if (photoPath.startsWith('http')) {
+        return Image.network(
+          photoPath,
+          width: 50,
+          height: 50,
+          fit: BoxFit.cover,
+        );
+      } else if (File(photoPath).existsSync()) {
+        return Image.file(
+          File(photoPath),
+          width: 50,
+          height: 50,
+          fit: BoxFit.cover,
+        );
+      } else {
+        return Image.asset(
+          'assets/images/profile_cute.jpg',
+          width: 50,
+          height: 50,
+        );
+      }
+    } else {
+      return Image.asset('assets/images/profile.png', width: 50, height: 50);
+    }
   }
 
   @override
@@ -166,7 +195,7 @@ class _PengajarListPageState extends State<PengajarListPage> {
                             filterPengajar(value, kategori: selectedCategory);
                           },
                           decoration: InputDecoration(
-                            hintText: "Cari pengajar",
+                            hintText: "Cari nama pengajar",
                             filled: true,
                             fillColor: Colors.grey[300],
                             prefixIcon: const Icon(Icons.search),
@@ -218,13 +247,21 @@ class _PengajarListPageState extends State<PengajarListPage> {
                                   Container(
                                     color: Colors.white,
                                     child: ListTile(
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder:
+                                                (context) => ProfileScreen(
+                                                  pengajarId: item.id,
+                                                ),
+                                          ),
+                                        );
+                                      },
                                       leading: ClipRRect(
                                         borderRadius: BorderRadius.circular(8),
-                                        child: Image.network(
-                                          item.photo,
-                                          width: 60,
-                                          height: 60,
-                                          fit: BoxFit.cover,
+                                        child: buildPengajarImage(
+                                          item.photoPath,
                                         ),
                                       ),
                                       title: Row(
@@ -271,15 +308,11 @@ class _PengajarListPageState extends State<PengajarListPage> {
               ],
             ),
           ),
-
-          // Overlay hitam saat filter aktif
           if (showFilter)
             GestureDetector(
               onTap: toggleFilter,
               child: Container(color: Colors.black.withOpacity(0.3)),
             ),
-
-          // Panel filter di sebelah kanan
           AnimatedPositioned(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,

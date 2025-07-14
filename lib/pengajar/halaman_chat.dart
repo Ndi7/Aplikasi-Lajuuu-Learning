@@ -1,187 +1,228 @@
 import 'package:flutter/material.dart';
-import '../widget/headersmall_bar.dart';
-import 'package:aplikasi_lajuuu_learning/pengajar/bottom_bar_teacher.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'halaman_isi_chat_pengajar.dart';
+import 'package:aplikasi_lajuuu_learning/widget/headersmall_bar.dart';
+import 'bottom_bar_teacher.dart';
 
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+class HalamanChat extends StatefulWidget {
+  const HalamanChat({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: const ChatListPage(),
-    );
+  State<HalamanChat> createState() => _HalamanChatState();
+}
+
+class _HalamanChatState extends State<HalamanChat> {
+  final currentUser = FirebaseAuth.instance.currentUser;
+  Set<String> selectedChats = {};
+  bool isSelecting = false;
+
+  void toggleSelection(String chatId) {
+    setState(() {
+      if (selectedChats.contains(chatId)) {
+        selectedChats.remove(chatId);
+      } else {
+        selectedChats.add(chatId);
+      }
+    });
   }
-}
 
-class ChatListPage extends StatelessWidget {
-  const ChatListPage({Key? key}) : super(key: key);
-
-  final List<Map<String, dynamic>> chats = const [
-    {
-      'nama': 'Aji Wibowo S. Kom.',
-      'pesan': 'Terimakasih untuk materinya pak',
-      'waktu': '15.00',
-      'foto': '',
-      'badge': 1,
-    },
-    {
-      'nama': 'David Aguero S. SI.',
-      'pesan': 'oke',
-      'waktu': '11.32',
-      'foto': '',
-      'badge': 0,
-    },
-    {
-      'nama': 'Ayu Ingrid S.kom, M. Kom.',
-      'pesan': 'baik bu',
-      'waktu': '09.11',
-      'foto': '',
-      'badge': 2,
-    },
-    {
-      'nama': 'Cynthia Ningrum',
-      'pesan': 'Saya akan coba kak',
-      'waktu': '08.56',
-      'foto': '',
-      'badge': 0,
-    },
-    {
-      'nama': 'Obaja Louis M. T.I.',
-      'pesan': 'Ditunggu pembayarannya ya',
-      'waktu': '07.12',
-      'foto': '',
-      'badge': 0,
-    },
-    {
-      'nama': 'Hanaya',
-      'pesan': 'Terimakasih ya😊',
-      'waktu': 'Kemarin',
-      'foto': '',
-      'badge': 0,
-    },
-    {
-      'nama': 'RizalMuk',
-      'pesan': 'Oke Bro',
-      'waktu': 'Kemarin',
-      'foto': '',
-      'badge': 0,
-    },
-    {
-      'nama': 'Budiono',
-      'pesan': 'Okee',
-      'waktu': 'Selasa',
-      'foto': '',
-      'badge': 1,
-    },
-    {
-      'nama': 'Gufar',
-      'pesan': 'Yak semangat Lajuuu',
-      'waktu': 'Selasa',
-      'foto': '',
-      'badge': 0,
-    },
-  ];
+  void deleteSelectedChats() async {
+    for (var chatId in selectedChats) {
+      await FirebaseFirestore.instance.collection('chats').doc(chatId).delete();
+    }
+    setState(() {
+      selectedChats.clear();
+      isSelecting = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final currentUserId = currentUser?.uid;
+
     return Scaffold(
-      appBar: HeaderSmallBar(
-        title: 'Pesan',
-        onBack: () {
-          Navigator.pop(context);
-        },
-      ),
-      bottomNavigationBar: const BottomBarTeacher(
-        showBottomBar: true,
-        currentIndex: 2,
-        disableHighlight: false,
-      ),
+      appBar: const HeaderSmallBar(title: 'Pesan'),
       backgroundColor: Colors.white,
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isSelecting)
+            Container(
+              color: Colors.grey[300],
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('${selectedChats.length} dipilih'),
+                  TextButton.icon(
+                    onPressed: deleteSelectedChats,
+                    icon: const Icon(Icons.delete, color: Colors.deepPurple),
+                    label: const Text(
+                      'Hapus',
+                      style: TextStyle(color: Colors.deepPurple),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          const BottomBarTeacher(
+            showBottomBar: true,
+            currentIndex: 2,
+            disableHighlight: false,
+          ),
+        ],
+      ),
       body: Column(
         children: [
-          // List Chat
+          Align(
+            alignment: Alignment.centerRight,
+            child: IconButton(
+              icon: const Icon(Icons.more_vert),
+              onPressed: () {
+                setState(() => isSelecting = !isSelecting);
+              },
+            ),
+          ),
           Expanded(
-            child: Container(
-              color: Colors.white,
-              child: ListView.builder(
-                itemCount: chats.length,
-                itemBuilder: (context, index) {
-                  final chat = chats[index];
-                  final bool isUnread = chat['badge'] > 0;
+            child: StreamBuilder<QuerySnapshot>(
+              stream:
+                  FirebaseFirestore.instance
+                      .collection('chats')
+                      .where('users', arrayContains: currentUserId)
+                      .orderBy('lastTimestamp', descending: true)
+                      .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-                  return ListTile(
-                    leading: CircleAvatar(
-                      backgroundImage:
-                          chat['foto'] != ''
-                              ? NetworkImage(chat['foto'])
-                              : null,
-                      child:
-                          chat['foto'] == ''
-                              ? const Icon(Icons.person, color: Colors.white)
-                              : null,
-                      backgroundColor: Colors.grey,
-                    ),
-                    title: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          chat['nama'],
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: isUnread ? Colors.black : Colors.grey,
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(child: Text('Belum ada chat.'));
+                }
+
+                final chats = snapshot.data!.docs;
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8,
+                    horizontal: 12,
+                  ),
+                  itemCount: chats.length,
+                  itemBuilder: (context, index) {
+                    final chatDoc = chats[index];
+                    final chatId = chatDoc.id;
+                    final users = List<String>.from(chatDoc['users']);
+                    final otherUserId = users.firstWhere(
+                      (id) => id != currentUserId,
+                    );
+                    final lastMessage = chatDoc['lastMessage'] ?? '';
+                    final unreadCount =
+                        chatDoc['unreadCount_$currentUserId'] ?? 0;
+
+                    return FutureBuilder<DocumentSnapshot>(
+                      future:
+                          FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(otherUserId)
+                              .get(),
+                      builder: (context, userSnapshot) {
+                        if (!userSnapshot.hasData) {
+                          return const SizedBox.shrink();
+                        }
+
+                        final userData =
+                            userSnapshot.data!.data() as Map<String, dynamic>;
+                        final name = userData['name'] ?? 'Pengguna';
+                        final photoUrl = userData['photoUrl'] as String?;
+
+                        return Container(
+                          margin: const EdgeInsets.symmetric(vertical: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.purpleAccent),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        ),
-                        if (isUnread)
-                          Container(
-                            width: 18,
-                            height: 18,
-                            alignment: Alignment.center,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF7C4DFF),
-                              shape: BoxShape.circle,
+                          child: ListTile(
+                            onTap: () async {
+                              if (isSelecting) {
+                                toggleSelection(chatId);
+                                return;
+                              }
+
+                              await FirebaseFirestore.instance
+                                  .collection('chats')
+                                  .doc(chatId)
+                                  .update({'unreadCount_$currentUserId': 0});
+
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (_) => HalamanIsiChatPengajar(
+                                        chatId: chatId,
+                                        currentUserId: currentUserId!,
+                                        otherUserId: otherUserId,
+                                      ),
+                                ),
+                              );
+                            },
+                            onLongPress: () => toggleSelection(chatId),
+                            selected: selectedChats.contains(chatId),
+                            leading: Stack(
+                              children: [
+                                CircleAvatar(
+                                  radius: 24,
+                                  backgroundColor: Colors.grey.shade300,
+                                  backgroundImage:
+                                      photoUrl != null && photoUrl.isNotEmpty
+                                          ? NetworkImage(photoUrl)
+                                          : null,
+                                  child:
+                                      (photoUrl == null || photoUrl.isEmpty)
+                                          ? const Icon(
+                                            Icons.person,
+                                            color: Colors.white,
+                                          )
+                                          : null,
+                                ),
+                                if (unreadCount > 0)
+                                  Positioned(
+                                    right: 0,
+                                    top: 0,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(5),
+                                      decoration: const BoxDecoration(
+                                        color: Colors.red,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Text(
+                                        '$unreadCount',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
-                            child: Text(
-                              '${chat['badge']}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            title: Text(name),
+                            subtitle: Text(lastMessage),
+                            trailing:
+                                isSelecting
+                                    ? Checkbox(
+                                      value: selectedChats.contains(chatId),
+                                      onChanged: (_) => toggleSelection(chatId),
+                                    )
+                                    : null,
                           ),
-                      ],
-                    ),
-                    subtitle: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            chat['pesan'],
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Colors.black,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Text(
-                          chat['waktu'],
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
             ),
           ),
         ],

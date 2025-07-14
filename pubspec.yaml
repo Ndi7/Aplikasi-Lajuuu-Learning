@@ -45,11 +45,18 @@ dependencies:
   font_awesome_flutter: ^10.8.0
   google_sign_in: ^6.3.0
   url_launcher: ^6.2.5
+  image_picker: ^1.0.5
 
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.13.1
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/Logo Apk Lajuuu.png"
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -78,6 +85,7 @@ flutter:
     - assets/images/no_data.png
     - assets/images/female profil.jpg
     - assets/images/profile_cute.jpg
+    - assets/images/profile.png
     
 
 

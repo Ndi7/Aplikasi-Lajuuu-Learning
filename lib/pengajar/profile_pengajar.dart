@@ -1,12 +1,25 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:intl/intl.dart';
 
 import 'package:aplikasi_lajuuu_learning/widget/headersmall_bar.dart';
 import 'package:aplikasi_lajuuu_learning/pengajar/bottom_bar_teacher.dart';
 import 'setting.dart';
 import 'package:aplikasi_lajuuu_learning/Login/login_teacher.dart';
+
+String anonymizeName(String name) {
+  if (name.length <= 2) return '*' * name.length;
+  final firstTwo = name.substring(0, 2);
+  final lastChar = name.substring(name.length - 1);
+  final maxStars = 4;
+  final starCount = (name.length - 3).clamp(1, maxStars);
+  final stars = '*' * starCount;
+  return '$firstTwo$stars$lastChar';
+}
 
 class ProfileScreenTeacher extends StatefulWidget {
   const ProfileScreenTeacher({Key? key}) : super(key: key);
@@ -17,16 +30,23 @@ class ProfileScreenTeacher extends StatefulWidget {
 
 class _ProfileScreenTeacherState extends State<ProfileScreenTeacher> {
   int _selectedTabIndex = 0;
-  int likeCount = 0;
-  bool liked = false;
-  bool showReplyField = false;
-  final TextEditingController _replyController = TextEditingController();
   Map<String, dynamic>? teacherData;
+  double averageRating = 0.0;
+  bool isActive = true;
+  int? activeReplyIndex;
+  final TextEditingController _editingReplyController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     fetchTeacherData();
+    _loadAverageRating();
+  }
+
+  @override
+  void dispose() {
+    _editingReplyController.dispose();
+    super.dispose();
   }
 
   Future<void> fetchTeacherData() async {
@@ -40,8 +60,27 @@ class _ProfileScreenTeacherState extends State<ProfileScreenTeacher> {
       if (doc.exists) {
         setState(() {
           teacherData = doc.data();
+          isActive = doc['status'] ?? true;
         });
       }
+    }
+  }
+
+  Future<void> _loadAverageRating() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('ratings')
+            .where('pengajarId', isEqualTo: user.uid)
+            .get();
+    if (snapshot.docs.isNotEmpty) {
+      final total = snapshot.docs.fold(0.0, (sum, doc) {
+        return sum + (doc.data()['rating'] as num).toDouble();
+      });
+      setState(() {
+        averageRating = total / snapshot.docs.length;
+      });
     }
   }
 
@@ -52,6 +91,9 @@ class _ProfileScreenTeacherState extends State<ProfileScreenTeacher> {
         setState(() {
           _selectedTabIndex = index;
         });
+        if (index == 1) {
+          _loadAverageRating();
+        }
       },
       child: Column(
         children: [
@@ -74,13 +116,225 @@ class _ProfileScreenTeacherState extends State<ProfileScreenTeacher> {
     );
   }
 
-  Widget _buildTentangTab() {
-    if (teacherData == null) {
-      return const Center(child: CircularProgressIndicator());
+  Widget _buildUlasanTab() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return const Center(child: Text('Tidak ada data pengguna.'));
     }
 
+    return StreamBuilder<QuerySnapshot>(
+      stream:
+          FirebaseFirestore.instance
+              .collection('ratings')
+              .where('pengajarId', isEqualTo: user.uid)
+              .orderBy('timestamp', descending: true)
+              .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(child: Text('Belum ada ulasan.'));
+        }
+
+        final ulasanList = snapshot.data!.docs;
+
+        return ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: ulasanList.length,
+          itemBuilder: (context, index) {
+            final doc = ulasanList[index];
+            final data = doc.data() as Map<String, dynamic>;
+            final ulasan = data['ulasan'] ?? '';
+            final rating = (data['rating'] ?? 0).toDouble();
+            final reply = data['reply'];
+            final liked = data['likedByTeacher'] ?? false;
+            final timestamp = data['timestamp']?.toDate();
+            final formattedDate =
+                timestamp != null
+                    ? DateFormat('dd MMM yyyy, HH:mm').format(timestamp)
+                    : '';
+            final isAnonymous = data['anonymous'] ?? true;
+            final userName =
+                isAnonymous
+                    ? anonymizeName(data['userDisplayName'] ?? 'Pengguna')
+                    : data['userDisplayName'] ?? 'Pengguna';
+            final userPhotoUrl = data['userPhotoUrl'] ?? '';
+
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: Colors.grey[200],
+                        backgroundImage:
+                            isAnonymous || userPhotoUrl.isEmpty
+                                ? null
+                                : NetworkImage(userPhotoUrl),
+                        child:
+                            isAnonymous || userPhotoUrl.isEmpty
+                                ? const Icon(Icons.person, size: 20)
+                                : null,
+                      ),
+                      const SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            userName,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Row(
+                            children: List.generate(5, (i) {
+                              return Icon(
+                                Icons.star,
+                                size: 16,
+                                color: i < rating ? Colors.amber : Colors.grey,
+                              );
+                            }),
+                          ),
+                          if (formattedDate.isNotEmpty)
+                            Text(
+                              formattedDate,
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 12,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(ulasan),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            activeReplyIndex =
+                                activeReplyIndex == index ? null : index;
+                            _editingReplyController.text = reply ?? '';
+                          });
+                        },
+                        child: Text(
+                          reply == null || reply.isEmpty
+                              ? "Balas"
+                              : "Edit Balasan",
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      TextButton.icon(
+                        onPressed: () async {
+                          try {
+                            final newLike = !liked;
+                            await FirebaseFirestore.instance
+                                .collection('ratings')
+                                .doc(doc.id)
+                                .update({'likedByTeacher': newLike});
+                          } catch (e) {
+                            print('Gagal update like: $e');
+                          }
+                        },
+                        icon: Icon(
+                          liked ? Icons.favorite : Icons.favorite_border,
+                          color: liked ? Colors.red : Colors.grey,
+                        ),
+                        label: Text(liked ? "Disukai" : "Suka"),
+                      ),
+                    ],
+                  ),
+                  if (activeReplyIndex == index)
+                    Column(
+                      children: [
+                        TextField(
+                          controller: _editingReplyController,
+                          decoration: const InputDecoration(
+                            hintText: 'Tulis balasan...',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: () {
+                                setState(() {
+                                  activeReplyIndex = null;
+                                  _editingReplyController.clear();
+                                });
+                              },
+                              child: const Text('Batal'),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton(
+                              onPressed: () async {
+                                final replyText =
+                                    _editingReplyController.text.trim();
+                                if (replyText.isNotEmpty) {
+                                  try {
+                                    await FirebaseFirestore.instance
+                                        .collection('ratings')
+                                        .doc(doc.id)
+                                        .update({'reply': replyText});
+                                    setState(() {
+                                      activeReplyIndex = null;
+                                      _editingReplyController.clear();
+                                    });
+                                  } catch (e) {
+                                    print('Gagal update balasan: $e');
+                                  }
+                                }
+                              },
+                              child: const Text('Kirim'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  if (reply != null &&
+                      reply.toString().isNotEmpty &&
+                      activeReplyIndex != index)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.purple.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          "Balasan: $reply",
+                          style: const TextStyle(
+                            fontStyle: FontStyle.italic,
+                            color: Colors.purple,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildTentangTab() {
+    if (teacherData == null)
+      return const Center(child: CircularProgressIndicator());
+
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -91,8 +345,12 @@ class _ProfileScreenTeacherState extends State<ProfileScreenTeacher> {
             "Sertifikasi",
             teacherData!['sertificationUrl'] ?? "-",
           ),
-          _buildInfoRow("No. Hp", teacherData!['contacNumber'] ?? "-"),
+          _buildInfoRow("Kontak", teacherData!['contactNumber'] ?? "-"),
           _buildInfoRow("Email", teacherData!['email'] ?? "-"),
+          _buildInfoRow(
+            "No. Rekening Bank",
+            teacherData!['bankAccount'] ?? "-",
+          ),
           const SizedBox(height: 32),
           Center(
             child: ElevatedButton(
@@ -128,8 +386,21 @@ class _ProfileScreenTeacherState extends State<ProfileScreenTeacher> {
 
   Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0),
-      child: Row(children: [Expanded(child: Text(label)), Text(": $value")]),
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 130,
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          const Text(": ", style: TextStyle(fontWeight: FontWeight.bold)),
+          Expanded(child: Text(value)),
+        ],
+      ),
     );
   }
 
@@ -137,128 +408,43 @@ class _ProfileScreenTeacherState extends State<ProfileScreenTeacher> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
       child: Row(
-        children: [
-          Expanded(child: Text(label)),
-          url.startsWith('http')
-              ? GestureDetector(
-                onTap: () async {
-                  final uri = Uri.parse(url);
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Gagal membuka link')),
-                    );
-                  }
-                },
-                child: const Text(
-                  "Lihat Sertifikat",
-                  style: TextStyle(
-                    color: Colors.blue,
-                    decoration: TextDecoration.underline,
-                  ),
-                ),
-              )
-              : Text(": $url"),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUlasanTab() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "Rating dan Ulasan",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              const CircleAvatar(
-                radius: 20,
-                backgroundImage: AssetImage('assets/avatar.png'),
-              ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    "Laju Learning",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Row(
-                    children: [
-                      Icon(Icons.star, color: Colors.amber, size: 16),
-                      Icon(Icons.star, color: Colors.amber, size: 16),
-                      Icon(Icons.star, color: Colors.amber, size: 16),
-                      Icon(Icons.star, color: Colors.amber, size: 16),
-                      Icon(Icons.star, color: Colors.amber, size: 16),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          const Text("Pelajarannya mudah dimengerti"),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    showReplyField = !showReplyField;
-                  });
-                },
-                child: const Text("Balas"),
-              ),
-              const SizedBox(width: 10),
-              TextButton.icon(
-                onPressed: () {
-                  setState(() {
-                    liked = !liked;
-                    likeCount += liked ? 1 : -1;
-                  });
-                },
-                icon: Icon(
-                  liked ? Icons.favorite : Icons.favorite_border,
-                  color: liked ? Colors.red : Colors.grey,
-                ),
-                label: Text("Suka (\$likeCount)"),
-              ),
-            ],
-          ),
-          if (showReplyField)
-            Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: Column(
-                children: [
-                  TextField(
-                    controller: _replyController,
-                    decoration: const InputDecoration(
-                      hintText: 'Tulis balasan...',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ElevatedButton(
-                    onPressed: () {
-                      if (_replyController.text.isNotEmpty) {
-                        setState(() {
-                          showReplyField = false;
-                          _replyController.clear();
-                        });
-                      }
-                    },
-                    child: const Text('Kirim'),
-                  ),
-                ],
-              ),
+          SizedBox(
+            width: 130,
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
+          ),
+          const Text(": ", style: TextStyle(fontWeight: FontWeight.bold)),
+          Expanded(
+            child:
+                url.startsWith('http')
+                    ? GestureDetector(
+                      onTap: () async {
+                        final uri = Uri.parse(url);
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(
+                            uri,
+                            mode: LaunchMode.externalApplication,
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Gagal membuka link')),
+                          );
+                        }
+                      },
+                      child: const Text(
+                        "Lihat Sertifikat",
+                        style: TextStyle(
+                          color: Colors.blue,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    )
+                    : Text(url),
+          ),
         ],
       ),
     );
@@ -273,6 +459,7 @@ class _ProfileScreenTeacherState extends State<ProfileScreenTeacher> {
           Navigator.pop(context);
         },
       ),
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
@@ -291,7 +478,9 @@ class _ProfileScreenTeacherState extends State<ProfileScreenTeacher> {
                         MaterialPageRoute(
                           builder: (context) => PengaturanPage(),
                         ),
-                      );
+                      ).then((_) {
+                        fetchTeacherData();
+                      });
                     },
                     child: const Icon(Icons.settings, color: Colors.purple),
                   ),
@@ -299,9 +488,14 @@ class _ProfileScreenTeacherState extends State<ProfileScreenTeacher> {
               ),
             ),
             const SizedBox(height: 10),
-            const CircleAvatar(
+            CircleAvatar(
               radius: 50,
-              backgroundImage: AssetImage('assets/images/profile_cute.jpg'),
+              backgroundImage:
+                  teacherData?['photoPath'] != null &&
+                          File(teacherData!['photoPath']).existsSync()
+                      ? FileImage(File(teacherData!['photoPath']))
+                      : const AssetImage('assets/images/profile.jpg')
+                          as ImageProvider,
             ),
             const SizedBox(height: 12),
             Text(
@@ -323,19 +517,19 @@ class _ProfileScreenTeacherState extends State<ProfileScreenTeacher> {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.green,
+                    color: isActive ? Colors.green : Colors.red,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
-                    "Aktif",
-                    style: TextStyle(color: Colors.white, fontSize: 12),
+                  child: Text(
+                    isActive ? "Aktif" : "Tidak Aktif",
+                    style: const TextStyle(color: Colors.white, fontSize: 12),
                   ),
                 ),
                 const SizedBox(width: 8),
                 const Icon(Icons.star, color: Colors.amber, size: 20),
-                const Text(
-                  "4.8",
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                Text(
+                  averageRating.toStringAsFixed(1),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ],
             ),

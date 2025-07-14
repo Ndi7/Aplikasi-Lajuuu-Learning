@@ -1,5 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:aplikasi_lajuuu_learning/widget/headersmall_bar.dart';
@@ -12,10 +13,14 @@ class EditProfilePage extends StatefulWidget {
 class _EditProfilePageState extends State<EditProfilePage> {
   final _formKey = GlobalKey<FormState>();
 
-  TextEditingController _nameController = TextEditingController();
-  TextEditingController _emailController = TextEditingController();
-  TextEditingController _contactController = TextEditingController();
-  String? _certificationFileName;
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _contactController = TextEditingController();
+  final _certificationUrlController = TextEditingController();
+  final _bankAccountController = TextEditingController(); // ✅ Controller Baru
+
+  String? _photoPath;
+  File? _pickedImage;
 
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
@@ -33,10 +38,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
       final data = doc.data();
       if (data != null) {
         setState(() {
-          _nameController.text = data['nama'] ?? '';
+          _nameController.text = data['name'] ?? '';
           _emailController.text = data['email'] ?? '';
-          _contactController.text = data['kontak'] ?? '';
-          _certificationFileName = data['sertifikat'];
+          _contactController.text = data['contactNumber'] ?? '';
+          _certificationUrlController.text = data['sertificationUrl'] ?? '';
+          _bankAccountController.text = data['bankAccount'] ?? '';
+          _photoPath = data['photoPath'];
         });
       }
     }
@@ -45,33 +52,49 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Future<void> _updateProfile() async {
     final user = _auth.currentUser;
     if (user != null) {
-      await _firestore.collection('pengajar').doc(user.uid).update({
-        'nama': _nameController.text.trim(),
+      final data = {
+        'name': _nameController.text.trim(),
         'email': _emailController.text.trim(),
-        'kontak': _contactController.text.trim(),
-        'sertifikat': _certificationFileName ?? '',
-      });
+        'contactNumber': _contactController.text.trim(),
+        'sertificationUrl': _certificationUrlController.text.trim(),
+        'bankAccount':
+            _bankAccountController.text.trim(), // ✅ Simpan Bank Account
+      };
+
+      if (_pickedImage != null) {
+        data['photoPath'] = _pickedImage!.path;
+      }
+
+      await _firestore.collection('pengajar').doc(user.uid).update(data);
 
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Profil berhasil diperbarui")));
 
-      // Kembalikan nama ke halaman utama
       Navigator.pop(context, _nameController.text.trim());
     }
   }
 
-  Future<void> _pickCertificationFile() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
-    if (result != null) {
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
       setState(() {
-        _certificationFileName = result.files.single.name;
+        _pickedImage = File(pickedFile.path);
+        _photoPath = pickedFile.path;
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final imageProvider =
+        (_pickedImage != null)
+            ? FileImage(_pickedImage!)
+            : (_photoPath != null && File(_photoPath!).existsSync())
+            ? FileImage(File(_photoPath!))
+            : const AssetImage('assets/images/profile_cute.jpg');
+
     return Scaffold(
       appBar: HeaderSmallBar(
         title: 'Edit Profil',
@@ -103,24 +126,20 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     children: [
                       CircleAvatar(
                         radius: 50,
-                        backgroundImage: AssetImage(
-                          'assets/images/profile_cute.jpg',
-                        ),
+                        backgroundImage: imageProvider as ImageProvider,
                       ),
                       Positioned(
                         right: 0,
                         top: 0,
                         child: GestureDetector(
-                          onTap: () {
-                            // Tambahkan aksi ubah foto jika diperlukan
-                          },
+                          onTap: _pickImage,
                           child: CircleAvatar(
                             radius: 14,
                             backgroundColor: Colors.white,
                             child: Icon(
                               Icons.edit,
                               size: 16,
-                              color: Colors.grey,
+                              color: Colors.purpleAccent,
                             ),
                           ),
                         ),
@@ -128,53 +147,32 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     ],
                   ),
                   SizedBox(height: 20),
-
                   _buildTextField("Nama", _nameController),
                   SizedBox(height: 12),
-
                   _buildTextField(
                     "Email",
                     _emailController,
                     keyboardType: TextInputType.emailAddress,
                   ),
                   SizedBox(height: 12),
-
                   _buildTextField(
                     "Kontak",
                     _contactController,
                     keyboardType: TextInputType.phone,
                   ),
                   SizedBox(height: 12),
-
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      "Sertifikasi",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                  _buildTextField(
+                    "Link Sertifikasi",
+                    _certificationUrlController,
+                    keyboardType: TextInputType.url,
                   ),
-                  SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: _pickCertificationFile,
-                    child: Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 14,
-                      ),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.deepPurple),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        _certificationFileName ?? "Upload file sertifikat",
-                        style: TextStyle(color: Colors.grey[700]),
-                      ),
-                    ),
-                  ),
-
+                  SizedBox(height: 12),
+                  _buildTextField(
+                    "No. Rekening Bank",
+                    _bankAccountController,
+                    keyboardType: TextInputType.number,
+                  ), // ✅ Input Rekening
                   SizedBox(height: 20),
-
                   ElevatedButton(
                     onPressed: () {
                       if (_formKey.currentState!.validate()) {

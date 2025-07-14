@@ -1,83 +1,145 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 
-void main() {
-  runApp(const MyApp());
-}
+class AjukanJadwalModal extends StatefulWidget {
+  final String pengajarId;
+  final String nama;
+  final String mataKuliah;
+  final String metode;
+  final String tanggal;
+  final String waktu;
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const AjukanJadwalModal({
+    Key? key,
+    required this.pengajarId,
+    required this.nama,
+    required this.mataKuliah,
+    required this.metode,
+    required this.tanggal,
+    required this.waktu,
+  }) : super(key: key);
 
-  @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: CheckoutPage(),
-    );
-  }
-}
-
-class CheckoutPage extends StatelessWidget {
-  const CheckoutPage({super.key});
-
-  void _showCheckoutModal(BuildContext context) {
+  void show(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // agar bisa full height jika dibutuhkan
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
       ),
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(24),
-          decoration: const BoxDecoration(
-            color: Colors.deepPurple,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildInfoRow('Nama', 'Shevy Nur Alviani'),
-              _buildInfoRow('Mata Kuliah', 'Pemograman Dasar'),
-              _buildInfoRow('Mode Pembelajaran', 'Online'),
-              _buildInfoRow('Tanggal', '17 Juni 2025'),
-              _buildInfoRow('Waktu', '10:30 WIB'),
-              _buildInfoRow('Total Pembayaran', 'Rp150.000'),
-              const SizedBox(height: 24),
-              Center(
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.deepPurple,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.pop(context); // contoh: menutup modal
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Pembayaran diproses')),
-                      );
-                    },
-                    child: const Text(
-                      'Bayar',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
-        );
-      },
+      builder: (context) => this,
     );
+  }
+
+  @override
+  State<AjukanJadwalModal> createState() => _AjukanJadwalModalState();
+}
+
+class _AjukanJadwalModalState extends State<AjukanJadwalModal> {
+  File? _imageFile;
+  String? _imageBase64;
+  bool _isSubmitting = false;
+
+  Future<void> _pickImage() async {
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      final bytes = await picked.readAsBytes();
+      setState(() {
+        _imageFile = File(picked.path);
+        _imageBase64 = base64Encode(bytes);
+      });
+    }
+  }
+
+  Future<Map<String, dynamic>> _getPelajarData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return {};
+
+    final doc =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+    if (doc.exists) {
+      return {
+        'userId': user.uid,
+        'namaPelajar': doc.data()?['name'] ?? '',
+        'photoPelajar': doc.data()?['photoPath'] ?? '',
+      };
+    } else {
+      return {'userId': user.uid, 'namaPelajar': '', 'photoPelajar': ''};
+    }
+  }
+
+  Future<void> _submitRequest() async {
+    if (_imageBase64 == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Mohon unggah bukti pembayaran')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      final pelajarData = await _getPelajarData();
+
+      final pengajarSnapshot =
+          await FirebaseFirestore.instance
+              .collection('pengajar')
+              .doc(widget.pengajarId)
+              .get();
+
+      String? photoPengajar = '';
+      if (pengajarSnapshot.exists) {
+        photoPengajar = pengajarSnapshot.data()?['photoPath'] ?? '';
+      }
+
+      await FirebaseFirestore.instance.collection('ajukan_jadwal').add({
+        'userId': pelajarData['userId'],
+        'namaPelajar': pelajarData['namaPelajar'],
+        'photoPelajar': pelajarData['photoPelajar'],
+        'photoPengajar': photoPengajar,
+        'pengajarId': widget.pengajarId,
+        'nama_pengajar': widget.nama,
+        'mata_kuliah': widget.mataKuliah,
+        'metode': widget.metode,
+        'tanggal': widget.tanggal,
+        'waktu': widget.waktu,
+        'bukti_pembayaran_base64': _imageBase64,
+        'status': 'Menunggu Konfirmasi',
+        'createdAt': Timestamp.now(),
+      });
+
+      Navigator.pop(context);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pengajuan berhasil dikirim')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Gagal mengajukan: $e')));
+    } finally {
+      setState(() {
+        _isSubmitting = false;
+      });
+    }
+  }
+
+  String _formatTanggal(String tanggal) {
+    try {
+      final parsedDate = DateTime.parse(tanggal);
+      return DateFormat('dd-MM-yyyy').format(parsedDate);
+    } catch (e) {
+      return tanggal;
+    }
   }
 
   Widget _buildInfoRow(String label, String value) {
@@ -105,12 +167,73 @@ class CheckoutPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Halaman Checkout')),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: () => _showCheckoutModal(context),
-          child: const Text('Checkout'),
+    return Padding(
+      padding: MediaQuery.of(context).viewInsets,
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.deepPurple,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildInfoRow('Nama Pengajar', widget.nama),
+            _buildInfoRow('Mata Kuliah', widget.mataKuliah),
+            _buildInfoRow('Metode', widget.metode),
+            _buildInfoRow('Tanggal', _formatTanggal(widget.tanggal)),
+            _buildInfoRow('Waktu', widget.waktu),
+            const SizedBox(height: 16),
+            Center(
+              child: GestureDetector(
+                onTap: _pickImage,
+                child:
+                    _imageFile != null
+                        ? Image.file(_imageFile!, height: 100)
+                        : Container(
+                          width: double.infinity,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.grey),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'Upload Bukti Pembayaran',
+                              style: TextStyle(color: Colors.black54),
+                            ),
+                          ),
+                        ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.deepPurple,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                ),
+                onPressed: _isSubmitting ? null : _submitRequest,
+                child:
+                    _isSubmitting
+                        ? const CircularProgressIndicator()
+                        : const Text(
+                          'Ajukan',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+              ),
+            ),
+          ],
         ),
       ),
     );

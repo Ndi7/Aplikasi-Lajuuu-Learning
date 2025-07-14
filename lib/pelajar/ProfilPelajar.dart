@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -36,6 +38,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String name = '';
   String email = '';
   String contactNumber = '';
+  String? photoPath;
 
   @override
   void initState() {
@@ -58,7 +61,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           name = data['name'] ?? 'Nama Pengguna';
           email = data['email'] ?? user.email ?? 'email@example.com';
-          contactNumber = data['contact'] ?? '08XXXXXXXXXX';
+          contactNumber = data['contactNumber'] ?? '08XXXXXXXXXX';
+          photoPath = data['photo'];
         });
       }
     }
@@ -116,9 +120,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: CircleAvatar(
                     radius: 50,
                     backgroundColor: Colors.white,
-                    backgroundImage: AssetImage(
-                      'assets/images/female profil.jpg',
-                    ),
+                    backgroundImage:
+                        photoPath != null
+                            ? FileImage(File(photoPath!)) as ImageProvider
+                            : AssetImage('assets/images/profile.png'),
                   ),
                 ),
               ),
@@ -196,7 +201,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               context,
               MaterialPageRoute(builder: (context) => EditProfile()),
             ).then((_) {
-              loadFirebaseUser(); // refresh setelah edit
+              loadFirebaseUser();
             });
           },
         ),

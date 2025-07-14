@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'headersmall_bar.dart';
 
@@ -16,6 +18,9 @@ class _EditProfileState extends State<EditProfile> {
   TextEditingController _nameController = TextEditingController();
   TextEditingController _contactController = TextEditingController();
   String email = '';
+
+  final ImagePicker _picker = ImagePicker();
+  File? _pickedImage;
 
   @override
   void initState() {
@@ -34,8 +39,29 @@ class _EditProfileState extends State<EditProfile> {
       if (userDoc.exists) {
         final data = userDoc.data()!;
         _nameController.text = data['name'] ?? '';
-        _contactController.text = data['contact'] ?? '';
+        _contactController.text = data['contactNumber'] ?? '';
+
+        if (data['photoPath'] != null) {
+          final file = File(data['photoPath']);
+          if (await file.exists()) {
+            setState(() {
+              _pickedImage = file;
+            });
+          }
+        }
       }
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final pickedFile = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+    );
+    if (pickedFile != null) {
+      setState(() {
+        _pickedImage = File(pickedFile.path);
+      });
     }
   }
 
@@ -47,8 +73,12 @@ class _EditProfileState extends State<EditProfile> {
       'name': _nameController.text,
       'contactNumber': _contactController.text,
       'email': user.email,
-      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
     };
+
+    if (_pickedImage != null) {
+      profileData['photoPath'] = _pickedImage!.path;
+    }
 
     await _firestore
         .collection('users')
@@ -62,7 +92,33 @@ class _EditProfileState extends State<EditProfile> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text('Profil berhasil diperbarui!')));
-    Navigator.pop(context); // kembali ke halaman profil
+    Navigator.pop(context);
+  }
+
+  Widget _buildProfilePhoto() {
+    return Stack(
+      alignment: Alignment.bottomRight,
+      children: [
+        CircleAvatar(
+          radius: 50,
+          backgroundImage:
+              _pickedImage != null ? FileImage(_pickedImage!) : null,
+          backgroundColor: Colors.grey[300],
+          child:
+              _pickedImage == null
+                  ? Icon(Icons.person, size: 50, color: Colors.white)
+                  : null,
+        ),
+        Positioned(
+          right: 0,
+          bottom: 0,
+          child: IconButton(
+            icon: Icon(Icons.edit, color: Colors.purple),
+            onPressed: _pickImage,
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -77,13 +133,7 @@ class _EditProfileState extends State<EditProfile> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(
-              child: CircleAvatar(
-                radius: 40,
-                backgroundColor: Colors.grey,
-                child: Icon(Icons.person, size: 50),
-              ),
-            ),
+            Center(child: _buildProfilePhoto()),
             SizedBox(height: 20),
             Text('Nama', style: TextStyle(fontWeight: FontWeight.bold)),
             TextField(

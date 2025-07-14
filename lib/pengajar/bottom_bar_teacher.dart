@@ -7,15 +7,13 @@ import 'package:aplikasi_lajuuu_learning/pengajar/page_persetujuan_teacher.dart'
 class BottomBarTeacher extends StatelessWidget {
   final bool showBottomBar;
   final bool disableHighlight;
-
-  /// Tambahan: index halaman saat ini
   final int currentIndex;
 
   const BottomBarTeacher({
     Key? key,
     required this.showBottomBar,
     this.disableHighlight = false,
-    this.currentIndex = 0, // default ke halaman pertama (Beranda)
+    this.currentIndex = 0,
   }) : super(key: key);
 
   @override
@@ -27,11 +25,11 @@ class BottomBarTeacher extends StatelessWidget {
 
     return BottomNavigationBar(
       type: BottomNavigationBarType.fixed,
-      currentIndex: currentIndex, // ← Gunakan index yang diberikan
+      currentIndex: currentIndex,
       selectedItemColor: selectedColor,
       unselectedItemColor: Colors.grey,
       onTap: (index) {
-        if (index == currentIndex) return; // Jangan pindah kalau halaman sama
+        if (index == currentIndex) return;
 
         switch (index) {
           case 0:
@@ -49,7 +47,7 @@ class BottomBarTeacher extends StatelessWidget {
           case 2:
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const ChatListPage()),
+              MaterialPageRoute(builder: (_) => const HalamanChat()),
             );
             break;
           case 3:

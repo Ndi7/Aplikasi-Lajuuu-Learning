@@ -31,7 +31,7 @@ class InfoBantuanPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: HeaderSmallBar(
-        title: 'Edit Profil',
+        title: 'Info & Bantuan',
         onBack: () {
           Navigator.pop(context);
         },

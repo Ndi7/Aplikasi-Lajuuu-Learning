@@ -1,170 +1,165 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
-void main() => runApp(MyApp());
+class HalamanIsiChatPengajar extends StatefulWidget {
+  final String chatId;
+  final String currentUserId;
+  final String otherUserId;
 
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(home: ChatScreen(), debugShowCheckedModeBanner: false);
-  }
-}
-
-class ChatMessage {
-  final String message;
-  final String time;
-  final bool isSender;
-
-  ChatMessage({
-    required this.message,
-    required this.time,
-    required this.isSender,
+  HalamanIsiChatPengajar({
+    required this.chatId,
+    required this.currentUserId,
+    required this.otherUserId,
   });
-}
 
-class ChatScreen extends StatefulWidget {
   @override
-  _ChatScreenState createState() => _ChatScreenState();
+  _HalamanIsiChatPengajarState createState() => _HalamanIsiChatPengajarState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
-  final List<ChatMessage> _messages = []; // Kosongkan pesan awal
+class _HalamanIsiChatPengajarState extends State<HalamanIsiChatPengajar> {
   final TextEditingController _controller = TextEditingController();
 
-  void _sendMessage(String text) async {
-    if (text.trim().isEmpty) return;
+  @override
+  void initState() {
+    super.initState();
+    _resetUnreadCount();
+  }
 
-    // Di sinilah Anda seharusnya mengirim pesan ke Firebase terlebih dahulu
-    // Setelah berhasil disimpan di Firebase, baru tambahkan ke _messages
+  Future<void> _resetUnreadCount() async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('chats')
+          .doc(widget.chatId)
+          .update({'unreadCount_${widget.currentUserId}': 0});
+    } catch (e) {
+      print("Gagal reset unread count: $e");
+    }
+  }
 
-    final now = DateTime.now();
-    final formattedTime = DateFormat('HH.mm').format(now);
+  Future<void> _sendMessage() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
 
-    setState(() {
-      _messages.add(
-        ChatMessage(message: text, time: formattedTime, isSender: true),
-      );
-      _controller.clear();
+    final chatRef = FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.chatId);
+    final timestamp = FieldValue.serverTimestamp();
+
+    // 1️ Pastikan dokumen chat sudah ada (jika belum, buat)
+    final chatSnapshot = await chatRef.get();
+    if (!chatSnapshot.exists) {
+      await chatRef.set({
+        'users': [widget.currentUserId, widget.otherUserId],
+        'lastMessage': '',
+        'lastTimestamp': timestamp,
+        'unreadCount_${widget.currentUserId}': 0,
+        'unreadCount_${widget.otherUserId}': 0,
+      });
+    }
+
+    // 2️ Simpan pesan baru
+    await chatRef.collection('messages').add({
+      'text': text,
+      'senderId': widget.currentUserId,
+      'receiverId': widget.otherUserId,
+      'timestamp': timestamp,
     });
+
+    await chatRef.set({
+      'lastMessage': text,
+      'lastTimestamp': timestamp,
+      'unreadCount_${widget.otherUserId}': FieldValue.increment(1),
+    }, SetOptions(merge: true));
+
+    _controller.clear();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            Expanded(
-              child: ListView.builder(
-                padding: EdgeInsets.all(12),
-                itemCount: _messages.length,
-                itemBuilder: (context, index) {
-                  final msg = _messages[index];
-                  return Align(
-                    alignment:
-                        msg.isSender
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                    child: Column(
-                      crossAxisAlignment:
-                          msg.isSender
-                              ? CrossAxisAlignment.end
-                              : CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            vertical: 10,
-                            horizontal: 14,
-                          ),
-                          margin: EdgeInsets.only(bottom: 4),
-                          decoration: BoxDecoration(
-                            color:
-                                msg.isSender
-                                    ? Color(0xFFD5C4F4)
-                                    : Color(0xFFEAEAEA),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(msg.message),
-                        ),
-                        Text(
-                          msg.time,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-            _buildInputArea(),
-          ],
+      appBar: AppBar(
+        title: const Text(
+          "Obrolan dengan Pelajar",
+          style: TextStyle(color: Colors.white),
         ),
+        backgroundColor: Colors.deepPurpleAccent,
       ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      padding: EdgeInsets.all(16),
-      color: Color(0xFF8B5CF6),
-      child: Row(
-        children: [
-          CircleAvatar(backgroundImage: AssetImage("assets/avatar.png")),
-          SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "lajuuu",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                "Online",
-                style: TextStyle(color: Colors.white70, fontSize: 12),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInputArea() {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      color: Colors.grey[100],
-      child: Row(
+      backgroundColor: Colors.white,
+      body: Column(
         children: [
           Expanded(
-            child: TextField(
-              controller: _controller,
-              decoration: InputDecoration(
-                hintText: "Ketik Pesan",
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide.none,
-                ),
-                fillColor: Colors.white,
-                filled: true,
-                contentPadding: EdgeInsets.symmetric(horizontal: 16),
-              ),
+            child: StreamBuilder<QuerySnapshot>(
+              stream:
+                  FirebaseFirestore.instance
+                      .collection('chats')
+                      .doc(widget.chatId)
+                      .collection('messages')
+                      .orderBy('timestamp', descending: false)
+                      .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(child: Text("Belum ada pesan."));
+                }
+
+                var messages = snapshot.data!.docs;
+
+                return ListView.builder(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    var msg = messages[index];
+                    bool isMe = msg['senderId'] == widget.currentUserId;
+                    return Align(
+                      alignment:
+                          isMe ? Alignment.centerRight : Alignment.centerLeft,
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: isMe ? Colors.green[100] : Colors.grey[300],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(msg['text'] ?? ''),
+                      ),
+                    );
+                  },
+                );
+              },
             ),
           ),
-          SizedBox(width: 8),
-          GestureDetector(
-            onTap: () => _sendMessage(_controller.text),
-            child: CircleAvatar(
-              backgroundColor: Color(0xFF8B5CF6),
-              child: Icon(Icons.send, color: Colors.white),
+          Container(
+            margin: const EdgeInsets.fromLTRB(8, 4, 8, 12),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    decoration: const InputDecoration(
+                      hintText: 'Tulis pesan di sini...',
+                      border: InputBorder.none,
+                    ),
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (_) => _sendMessage(),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.send),
+                  onPressed: _sendMessage,
+                  color: Colors.deepPurple,
+                ),
+              ],
             ),
           ),
         ],

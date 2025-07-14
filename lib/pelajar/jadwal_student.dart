@@ -2,10 +2,16 @@ import 'package:aplikasi_lajuuu_learning/pelajar/tentang_student.dart';
 import 'package:aplikasi_lajuuu_learning/pelajar/ulasan_student.dart';
 import 'package:aplikasi_lajuuu_learning/widget/headersmall_bar.dart';
 import 'package:aplikasi_lajuuu_learning/pelajar/bottom_bar.dart';
+import 'package:aplikasi_lajuuu_learning/pelajar/checkout_page.dart';
+
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class DetailPengajar extends StatelessWidget {
-  const DetailPengajar({Key? key}) : super(key: key);
+  final String pengajarId;
+  const DetailPengajar({Key? key, required this.pengajarId}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -15,53 +21,95 @@ class DetailPengajar extends StatelessWidget {
         primarySwatch: Colors.purple,
         scaffoldBackgroundColor: Colors.white,
       ),
-      home: const ProfileScreen(),
+      home: ProfileScreen(pengajarId: pengajarId),
     );
   }
 }
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+  final String pengajarId;
+  const ProfileScreen({Key? key, required this.pengajarId}) : super(key: key);
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  int _selectedIndex = 0; // Jadwal tab is selected
+  int _selectedIndex = 0;
+  Map<String, dynamic>? pengajarData;
+  Map<String, dynamic>? selectedSlot;
+  String? selectedMode;
+  DateTime? selectedDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPengajar();
+  }
+
+  Future<void> _loadPengajar() async {
+    final doc =
+        await FirebaseFirestore.instance
+            .collection('pengajar')
+            .doc(widget.pengajarId)
+            .get();
+
+    if (doc.exists) {
+      setState(() {
+        pengajarData = doc.data();
+      });
+    }
+  }
+
+  Stream<double> getAverageRatingStream(String pengajarId) {
+    return FirebaseFirestore.instance
+        .collection('ratings')
+        .where('pengajarId', isEqualTo: pengajarId)
+        .snapshots()
+        .map((snapshot) {
+          if (snapshot.docs.isEmpty) return 0.0;
+          final total = snapshot.docs.fold<double>(
+            0.0,
+            (sum, doc) => sum + (doc['rating'] ?? 0).toDouble(),
+          );
+          return total / snapshot.docs.length;
+        });
+  }
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return '-';
+    return DateFormat('dd-MM-yyyy').format(date);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final timeSlotsRef = FirebaseFirestore.instance
+        .collection('pengajar')
+        .doc(widget.pengajarId)
+        .collection('time_slots');
+
+    final pricingRef = FirebaseFirestore.instance
+        .collection('pengajar')
+        .doc(widget.pengajarId)
+        .collection('time_slots');
+
+    final name = pengajarData?['name'] ?? 'Memuat...';
+    final category = pengajarData?['category'] ?? '...';
+    final bool status = pengajarData?['status'] ?? false;
+
     return Scaffold(
+      appBar: HeaderSmallBar(
+        title: 'Profile',
+        onBack: () {
+          Navigator.pop(context);
+        },
+      ),
       bottomNavigationBar: const BottomBar(
         showBottomBar: true,
         disableHighlight: false,
       ),
       body: Column(
         children: [
-          HeaderSmallBar(
-            title: 'Profile', // Judul header
-            onBack: () {
-              Navigator.pop(context);
-            },
-          ),
-          Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 30, left: 15),
-                child: const Text(
-                  'Profil',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          // Profile Picture Section
           const SizedBox(height: 20),
           Container(
             width: 120,
@@ -71,59 +119,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
               border: Border.all(color: Colors.white, width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withAlpha((0.1 * 255).toInt()),
+                  color: Colors.black.withOpacity(0.1),
                   blurRadius: 10,
                   spreadRadius: 2,
                 ),
               ],
             ),
-            child: ClipOval(
-              //image disini
-            ),
+            child: ClipOval(child: _buildPhoto(pengajarData?['photoPath'])),
           ),
-
-          // Name and Status
           const SizedBox(height: 20),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
-                'Aji wibowo S. Kom.',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Text(
+                name,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Color(0xff00E732),
+                  color: status ? const Color(0xff00E732) : Colors.grey,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Text(
-                  'Aktif',
-                  style: TextStyle(
-                    color: Color(0xffFFFFFF),
+                child: Text(
+                  status ? 'Aktif' : 'Tidak Aktif',
+                  style: const TextStyle(
+                    color: Colors.white,
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(Icons.star, color: Colors.amber, size: 20),
-              const Text('4.8', style: TextStyle(fontWeight: FontWeight.bold)),
+              StreamBuilder<double>(
+                stream: getAverageRatingStream(widget.pengajarId),
+                builder: (context, snapshot) {
+                  final rating = snapshot.data ?? 0.0;
+                  return Row(
+                    children: [
+                      const Icon(Icons.star, color: Colors.amber, size: 20),
+                      Text(
+                        rating.toStringAsFixed(1),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ],
           ),
-
-          // Profession
           const SizedBox(height: 4),
-          const Text(
-            'Rekayasa Perangkat Lunak',
-            style: TextStyle(
+          Text(
+            category,
+            style: const TextStyle(
               fontStyle: FontStyle.italic,
               color: Colors.black54,
             ),
           ),
-
-          // Tabs
           const SizedBox(height: 16),
           Container(
             decoration: const BoxDecoration(
@@ -138,97 +194,128 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ),
           ),
-
-          // Jadwal Content
           const SizedBox(height: 20),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Tentang',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Text(
-                      'Online',
-                      style: TextStyle(fontSize: 14, color: Colors.black87),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Waktu',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 10,
-                    children: [
-                      _buildTimeSlot('15.00-15.10', false),
-                      _buildTimeSlot('15.00-15.30', true),
-                      _buildTimeSlot('15.00-16.00', false),
-                      _buildTimeSlot('16.00-16.30', false),
-                      _buildTimeSlot('19.00-20.00', false),
-                      _buildTimeSlot('19.00-19.30', true),
-                    ],
-                  ),
-                  const Spacer(),
-                  _buildChatButton(),
-                  const SizedBox(height: 20),
-                ],
-              ),
+              child:
+                  _selectedIndex == 0
+                      ? SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Waktu Ketersediaan',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            const Text(
+                              'Jadwal Online',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            _buildTimeSlots(timeSlotsRef, 'online'),
+                            const SizedBox(height: 20),
+                            const Text(
+                              'Jadwal Offline',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            _buildTimeSlots(timeSlotsRef, 'offline'),
+                            const SizedBox(height: 30),
+                            const Text(
+                              'Harga Kelas',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            _buildPricing(pricingRef),
+                            const SizedBox(height: 30),
+                            Center(
+                              child: SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xff00E732),
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    AjukanJadwalModal(
+                                      pengajarId: widget.pengajarId,
+                                      nama: pengajarData?['name'] ?? '-',
+                                      mataKuliah:
+                                          pengajarData?['category'] ?? '-',
+                                      metode: selectedMode ?? '-',
+                                      tanggal: _formatDate(selectedDate),
+                                      waktu:
+                                          '${selectedSlot?['startTime']} - ${selectedSlot?['endTime']}',
+                                    ).show(context);
+                                  },
+                                  child: const Text(
+                                    'Ajukan Jadwal',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                          ],
+                        ),
+                      )
+                      : const SizedBox(),
             ),
           ),
-
-          // Bottom Navigation
         ],
       ),
-      // bottomNavigationBar: BottomBar(),
     );
   }
 
   Widget _buildTab(String title, int index) {
     return InkWell(
       onTap: () {
-        if (index == _selectedIndex) {
-          // Tab sudah aktif, tidak perlu melakukan apa-apa
-          return;
-        }
-
+        if (index == _selectedIndex) return;
         if (index == 1) {
-          // Tab Tentang
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => TentangPengajar()),
+            MaterialPageRoute(
+              builder:
+                  (context) =>
+                      ProfileScreenPengajar(pengajarId: widget.pengajarId),
+            ),
           );
         } else if (index == 2) {
-          // Tab Ulasan
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => UlasanPengajar()),
+            MaterialPageRoute(
+              builder:
+                  (context) => UlasanPengajar(
+                    pengajarId: widget.pengajarId,
+                    pengajarRating:
+                        (pengajarData?['ratings'] ?? 0.0).toDouble(),
+                  ),
+            ),
           );
         } else {
-          // Untuk tab Jadwal, cukup ganti _selectedIndex
           setState(() {
             _selectedIndex = index;
           });
@@ -262,41 +349,114 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildTimeSlot(String time, bool isSelected) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: isSelected ? Colors.green : Colors.grey.shade300,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        time,
-        style: TextStyle(
-          fontSize: 14,
-          color: isSelected ? Colors.white : Colors.black87,
+  Widget _buildTimeSlots(CollectionReference ref, String metode) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: ref.where('metode', isEqualTo: metode).snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) return const Text('Gagal memuat data.');
+        if (!snapshot.hasData) return const CircularProgressIndicator();
+        final slots = snapshot.data!.docs;
+        if (slots.isEmpty) return const Text('Tidak ada jadwal.');
+        return Wrap(
+          spacing: 8,
+          runSpacing: 10,
+          children:
+              slots.map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                return _buildTimeSlot(
+                  '${data['startTime']} - ${data['endTime']}',
+                  true,
+                  data,
+                  metode,
+                );
+              }).toList(),
+        );
+      },
+    );
+  }
+
+  Widget _buildPricing(CollectionReference ref) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: ref.snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) return const Text('Gagal memuat data.');
+        if (!snapshot.hasData) return const CircularProgressIndicator();
+        final items = snapshot.data!.docs;
+        if (items.isEmpty) return const Text('Belum ada data harga.');
+        return Column(
+          children:
+              items.map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                return ListTile(
+                  title: Text('${data['duration']} menit'),
+                  subtitle: Text('Rp ${data['price']} (${data['metode']})'),
+                );
+              }).toList(),
+        );
+      },
+    );
+  }
+
+  Widget _buildTimeSlot(
+    String time,
+    bool isSelected,
+    Map<String, dynamic> data,
+    String metode,
+  ) {
+    bool isCurrentSelected =
+        selectedSlot?['startTime'] == data['startTime'] &&
+        selectedSlot?['endTime'] == data['endTime'];
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedSlot = data;
+          selectedMode = metode;
+
+          if (data['createdAt'] != null && data['createdAt'] is Timestamp) {
+            selectedDate = (data['createdAt'] as Timestamp).toDate();
+          } else {
+            selectedDate = DateTime.now();
+          }
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        decoration: BoxDecoration(
+          color: isCurrentSelected ? Colors.green : Colors.lightGreenAccent,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          time,
+          style: TextStyle(
+            fontSize: 14,
+            color: isCurrentSelected ? Colors.white : Colors.black87,
+          ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildChatButton() {
-    return Container(
-      width: double.infinity,
-      height: 50,
-      decoration: BoxDecoration(
-        color: Color(0xff00E732),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: const Center(
-        child: Text(
-          'Chat',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
+Widget _buildPhoto(String? photoPath) {
+  if (photoPath != null && photoPath.isNotEmpty) {
+    final file = File(photoPath);
+    if (file.existsSync()) {
+      return Image.file(file, fit: BoxFit.cover, width: 120, height: 120);
+    } else {
+      return Image.asset(
+        'assets/images/profile.png',
+        fit: BoxFit.cover,
+        width: 120,
+        height: 120,
+      );
+    }
+  } else {
+    return Image.asset(
+      'assets/images/profile.png',
+      fit: BoxFit.cover,
+      width: 120,
+      height: 120,
     );
   }
 }

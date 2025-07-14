@@ -72,7 +72,6 @@ class _StartedScreenState extends State<StartedScreen> {
                         textAlign: TextAlign.center,
                       ),
                       SizedBox(height: 5),
-
                       Image.asset(
                         _slides[index]['image']!,
                         height: 300,

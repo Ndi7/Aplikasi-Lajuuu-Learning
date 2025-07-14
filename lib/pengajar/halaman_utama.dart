@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -18,6 +20,9 @@ class _HomePageTeacherState extends State<HomePageTeacher> {
 
   bool isOnline = true;
   String? namaPengajar = "Memuat...";
+  String? photoPath;
+  final Map<String, bool> selectedSlotIds = {}; // id -> selected
+  bool isDeleting = false;
 
   @override
   void initState() {
@@ -36,6 +41,8 @@ class _HomePageTeacherState extends State<HomePageTeacher> {
         if (doc.exists) {
           setState(() {
             namaPengajar = doc['name'] ?? '-';
+            isOnline = doc['status'] ?? true;
+            photoPath = doc['photoPath'];
           });
         }
       } catch (e) {
@@ -44,6 +51,37 @@ class _HomePageTeacherState extends State<HomePageTeacher> {
         });
       }
     }
+  }
+
+  Future<void> _updateStatus(bool status) async {
+    if (uid != null) {
+      await FirebaseFirestore.instance.collection('pengajar').doc(uid).update({
+        'status': status,
+      });
+    }
+  }
+
+  void _deleteSelectedTimeSlots() async {
+    if (uid == null) return;
+
+    final batch = FirebaseFirestore.instance.batch();
+    selectedSlotIds.forEach((id, selected) {
+      if (selected) {
+        final docRef = FirebaseFirestore.instance
+            .collection('pengajar')
+            .doc(uid)
+            .collection('time_slots')
+            .doc(id);
+        batch.delete(docRef);
+      }
+    });
+
+    await batch.commit();
+
+    setState(() {
+      selectedSlotIds.clear();
+      isDeleting = false;
+    });
   }
 
   @override
@@ -61,9 +99,42 @@ class _HomePageTeacherState extends State<HomePageTeacher> {
                 children: [
                   _buildStatusBar(),
                   const SizedBox(height: 24),
-                  const Text(
-                    'Jadwal Tersedia',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Jadwal Tersedia',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          PopupMenuButton<String>(
+                            onSelected: (value) {
+                              if (value == 'hapus') {
+                                setState(() {
+                                  isDeleting = true;
+                                });
+                              }
+                            },
+                            itemBuilder:
+                                (context) => [
+                                  const PopupMenuItem(
+                                    value: 'hapus',
+                                    child: Text('Hapus'),
+                                  ),
+                                ],
+                          ),
+                          if (isDeleting)
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: _deleteSelectedTimeSlots,
+                            ),
+                        ],
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   uid != null
@@ -113,9 +184,13 @@ class _HomePageTeacherState extends State<HomePageTeacher> {
       ),
       child: Row(
         children: [
-          const CircleAvatar(
+          CircleAvatar(
             radius: 24,
-            backgroundImage: AssetImage('assets/images/profile_cute.jpg'),
+            backgroundImage:
+                (photoPath != null && File(photoPath!).existsSync())
+                    ? FileImage(File(photoPath!))
+                    : const AssetImage('assets/images/profile.png')
+                        as ImageProvider,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -125,10 +200,11 @@ class _HomePageTeacherState extends State<HomePageTeacher> {
             ),
           ),
           GestureDetector(
-            onTap: () {
+            onTap: () async {
               setState(() {
                 isOnline = !isOnline;
               });
+              await _updateStatus(isOnline);
             },
             child: Container(
               decoration: BoxDecoration(
@@ -165,37 +241,53 @@ class _HomePageTeacherState extends State<HomePageTeacher> {
         final docs = snapshot.data!.docs;
 
         final onlineSlots =
-            docs.where((doc) {
-              final data = doc.data() as Map<String, dynamic>;
-              return (data['metode'] ?? 'online') == 'online';
-            }).toList();
-
+            docs
+                .where((doc) => (doc['metode'] ?? 'online') == 'online')
+                .toList();
         final offlineSlots =
-            docs.where((doc) {
-              final data = doc.data() as Map<String, dynamic>;
-              return (data['metode'] ?? 'offline') == 'offline';
-            }).toList();
+            docs
+                .where((doc) => (doc['metode'] ?? 'offline') == 'offline')
+                .toList();
 
-        Widget buildSlotItem(Map<String, dynamic> data, Color color) {
+        Widget buildSlotItem(
+          Map<String, dynamic> data,
+          String docId,
+          Color color,
+        ) {
           final start = data['startTime'] ?? '??';
           final end = data['endTime'] ?? '??';
           final isAvailable = data['available'] ?? true;
 
           return Container(
-            width: 150,
+            width: 160,
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: isAvailable ? color : Colors.grey,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Text(
-                  '$start - $end',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                if (isDeleting)
+                  Checkbox(
+                    value: selectedSlotIds[docId] ?? false,
+                    onChanged: (val) {
+                      setState(() {
+                        selectedSlotIds[docId] = val ?? false;
+                      });
+                    },
+                  ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '$start - $end',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -217,7 +309,7 @@ class _HomePageTeacherState extends State<HomePageTeacher> {
               children:
                   onlineSlots.map((doc) {
                     final data = doc.data() as Map<String, dynamic>;
-                    return buildSlotItem(data, Colors.green);
+                    return buildSlotItem(data, doc.id, Colors.green);
                   }).toList(),
             ),
             const SizedBox(height: 16),
@@ -232,7 +324,7 @@ class _HomePageTeacherState extends State<HomePageTeacher> {
               children:
                   offlineSlots.map((doc) {
                     final data = doc.data() as Map<String, dynamic>;
-                    return buildSlotItem(data, Colors.blue);
+                    return buildSlotItem(data, doc.id, Colors.blue);
                   }).toList(),
             ),
           ],
@@ -247,7 +339,7 @@ class _HomePageTeacherState extends State<HomePageTeacher> {
           FirebaseFirestore.instance
               .collection('pengajar')
               .doc(uid)
-              .collection('pricing')
+              .collection('time_slots')
               .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const CircularProgressIndicator();
@@ -261,6 +353,7 @@ class _HomePageTeacherState extends State<HomePageTeacher> {
                 final data = doc.data() as Map<String, dynamic>;
                 final duration = doc['duration'] ?? '??';
                 final price = doc['price'] ?? 0;
+                final docId = doc.id;
 
                 return Container(
                   padding: const EdgeInsets.symmetric(
@@ -271,12 +364,26 @@ class _HomePageTeacherState extends State<HomePageTeacher> {
                     color: Colors.deepPurpleAccent,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(
-                    '$duration - Rp$price',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isDeleting)
+                        Checkbox(
+                          value: selectedSlotIds[docId] ?? false,
+                          onChanged: (val) {
+                            setState(() {
+                              selectedSlotIds[docId] = val ?? false;
+                            });
+                          },
+                        ),
+                      Text(
+                        '$duration - Rp$price',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
                 );
               }).toList(),
