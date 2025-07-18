@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
-
+import 'package:aplikasi_lajuuu_learning/pengajar/halaman_utama.dart';
 import 'package:aplikasi_lajuuu_learning/widget/headersmall_bar.dart';
 import 'package:aplikasi_lajuuu_learning/pengajar/bottom_bar_teacher.dart';
 import 'setting.dart';
@@ -456,7 +456,14 @@ class _ProfileScreenTeacherState extends State<ProfileScreenTeacher> {
       appBar: HeaderSmallBar(
         title: 'Profil',
         onBack: () {
-          Navigator.pop(context);
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => HomePageTeacher()),
+            );
+          }
         },
       ),
       backgroundColor: Colors.white,

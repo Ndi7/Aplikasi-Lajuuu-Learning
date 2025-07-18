@@ -214,7 +214,7 @@ class _TimeAvailabilityScreenState extends State<TimeAvailabilityScreen> {
     final price = int.tryParse(priceController.text.trim()) ?? 0;
 
     if (duration <= 0 || price <= 0) {
-      _showMessage("Durasi dan harga harus diisi dengan benar.");
+      _showMessage("Durasi dan harga harus diisi.");
       return;
     }
 

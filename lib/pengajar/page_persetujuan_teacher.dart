@@ -1,8 +1,8 @@
 import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:aplikasi_lajuuu_learning/pengajar/halaman_utama.dart';
 import 'package:aplikasi_lajuuu_learning/pengajar/bottom_bar_teacher.dart';
 import 'package:aplikasi_lajuuu_learning/pelajar/headersmall_bar.dart';
 import 'dart:convert';
@@ -65,7 +65,14 @@ class _DaftarPesananPageState extends State<DaftarPesananPage> {
       appBar: HeaderSmallBar(
         title: 'Pesanan',
         onBack: () {
-          Navigator.pop(context);
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => HomePageTeacher()),
+            );
+          }
         },
       ),
       bottomNavigationBar: const BottomBarTeacher(
@@ -181,7 +188,7 @@ class _DaftarPesananPageState extends State<DaftarPesananPage> {
                                   const SizedBox(width: 20),
                                   Expanded(
                                     child: Text(
-                                      data['nama_pengajar'] ?? '-',
+                                      data['namaPelajar'] ?? '-',
                                       style: const TextStyle(fontSize: 16),
                                     ),
                                   ),

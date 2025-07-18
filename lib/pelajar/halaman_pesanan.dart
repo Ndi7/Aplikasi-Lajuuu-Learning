@@ -1,8 +1,9 @@
 import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
+import 'halaman_utama.dart';
 import 'headersmall_bar.dart';
 import 'bottom_bar.dart';
 import 'halaman_isi_chat_pelajar.dart';
@@ -46,7 +47,14 @@ class HalamanPesananState extends State<HalamanPesanan>
           HeaderSmallBar(
             title: 'Pesanan',
             onBack: () {
-              Navigator.pop(context);
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => HomeScreen()),
+                );
+              }
             },
           ),
           Container(

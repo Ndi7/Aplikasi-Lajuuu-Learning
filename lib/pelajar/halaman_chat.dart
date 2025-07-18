@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
+import 'halaman_utama.dart';
 import 'halaman_isi_chat_pelajar.dart';
 import 'headersmall_bar.dart';
 import 'bottom_bar.dart';
@@ -66,7 +68,14 @@ class _HalamanChatState extends State<HalamanChat> {
       appBar: HeaderSmallBar(
         title: 'Pesan',
         onBack: () {
-          Navigator.pop(context);
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => HomeScreen()),
+            );
+          }
         },
       ),
       bottomNavigationBar:

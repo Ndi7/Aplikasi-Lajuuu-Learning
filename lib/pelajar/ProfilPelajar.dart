@@ -62,7 +62,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           name = data['name'] ?? 'Nama Pengguna';
           email = data['email'] ?? user.email ?? 'email@example.com';
           contactNumber = data['contactNumber'] ?? '08XXXXXXXXXX';
-          photoPath = data['photo'];
+          photoPath = data['photoPath'];
         });
       }
     }
