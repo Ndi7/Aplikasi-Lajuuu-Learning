@@ -93,7 +93,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             ? FileImage(_pickedImage!)
             : (_photoPath != null && File(_photoPath!).existsSync())
             ? FileImage(File(_photoPath!))
-            : const AssetImage('assets/images/profile_cute.jpg');
+            : const AssetImage('assets/images/profile.png');
 
     return Scaffold(
       appBar: HeaderSmallBar(

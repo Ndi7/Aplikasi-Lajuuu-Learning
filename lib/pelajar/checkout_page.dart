@@ -64,6 +64,7 @@ class _AjukanJadwalModalState extends State<AjukanJadwalModal> {
             .collection('users')
             .doc(user.uid)
             .get();
+
     if (doc.exists) {
       return {
         'userId': user.uid,
@@ -90,22 +91,10 @@ class _AjukanJadwalModalState extends State<AjukanJadwalModal> {
     try {
       final pelajarData = await _getPelajarData();
 
-      final pengajarSnapshot =
-          await FirebaseFirestore.instance
-              .collection('pengajar')
-              .doc(widget.pengajarId)
-              .get();
-
-      String? photoPengajar = '';
-      if (pengajarSnapshot.exists) {
-        photoPengajar = pengajarSnapshot.data()?['photoPath'] ?? '';
-      }
-
       await FirebaseFirestore.instance.collection('ajukan_jadwal').add({
         'userId': pelajarData['userId'],
         'namaPelajar': pelajarData['namaPelajar'],
         'photoPelajar': pelajarData['photoPelajar'],
-        'photoPengajar': photoPengajar,
         'pengajarId': widget.pengajarId,
         'nama_pengajar': widget.nama,
         'mata_kuliah': widget.mataKuliah,

@@ -112,7 +112,7 @@ class _LoginScreenStudentState extends State<LoginScreenStudent> {
                   children: [
                     CircularProgressIndicator(),
                     SizedBox(height: 16),
-                    Text('Processing...', style: TextStyle(fontSize: 18)),
+                    Text('Memproses...', style: TextStyle(fontSize: 18)),
                   ],
                 ),
               )

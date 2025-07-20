@@ -142,7 +142,7 @@ class _LoginScreenTeacherState extends State<LoginScreenTeacher> {
           _isLoading
               ? const Center(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     CircularProgressIndicator(),
                     SizedBox(height: 16),

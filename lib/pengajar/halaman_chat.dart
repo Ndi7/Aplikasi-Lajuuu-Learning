@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
+import 'package:aplikasi_lajuuu_learning/pengajar/halaman_utama.dart';
 import 'halaman_isi_chat_pengajar.dart';
 import 'package:aplikasi_lajuuu_learning/widget/headersmall_bar.dart';
 import 'bottom_bar_teacher.dart';
@@ -42,7 +44,19 @@ class _HalamanChatState extends State<HalamanChat> {
     final currentUserId = currentUser?.uid;
 
     return Scaffold(
-      appBar: const HeaderSmallBar(title: 'Pesan'),
+      appBar: HeaderSmallBar(
+        title: 'Pesan',
+        onBack: () {
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => HomePageTeacher()),
+            );
+          }
+        },
+      ),
       backgroundColor: Colors.white,
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
